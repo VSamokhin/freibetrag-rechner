@@ -1,0 +1,74 @@
+name: Deploy to GitHub Pages
+
+# Publishes the app at https://vsamokhin.github.io/freibetrag-rechner/ (SOA-25) only from
+# published releases: publish the draft that Release Drafter keeps, and this builds its tag after
+# the full quality gates. "Run workflow" redeploys the latest release (or a chosen tag).
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to deploy (empty = latest release)
+        required: false
+
+permissions:
+  contents: read
+
+# One deployment at a time; a newer release waits instead of cancelling one in progress.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Pick the release
+        id: tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          tag=${RELEASE_TAG:-$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)}
+          echo "tag=${tag:?no published release}" >> "$GITHUB_OUTPUT"
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ steps.tag.outputs.tag }}
+          # The version is derived from the git history (scripts/version.mjs).
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      # The same gates as CI (format, lint, types, tests, secret scan, audit), then the build.
+      - run: npm run verify
+      - name: The build is the release's version
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          version=$(node scripts/version.mjs)
+          [ "v$version" = "$TAG" ] || { echo "::error::Tag $TAG, but the commit builds v$version"; exit 1; }
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,29 @@
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+tag-prefix: v
+# The version comes from the git history (scripts/version.mjs, passed in by
+# .github/workflows/release-drafter.yml), not from labels; the drafter collects merged pull
+# requests into the notes of the next release.
+categories:
+  - title: Features
+    labels: [feature]
+  - title: Bug Fixes
+    labels: [fix]
+  - title: Maintenance
+    labels: [chore, dependencies]
+autolabeler:
+  - label: feature
+    branch:
+      - '/feature\/.+/'
+  - label: fix
+    branch:
+      - '/bugfix\/.+/'
+  - label: chore
+    branch:
+      - '/chore\/.+/'
+template: |
+  ## Changes
+
+  $CHANGES
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
