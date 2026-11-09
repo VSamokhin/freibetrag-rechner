@@ -1,10 +1,10 @@
 // Production build: bundles src/main.ts and copies static files from public/ into dist/,
-// stamping the version from package.json into the bundle and the service worker cache name.
+// stamping the git-derived version (scripts/version.mjs) into the bundle and the service worker cache name.
 import { build } from "esbuild";
 import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { ROOT, versionOf } from "./version.mjs";
 
-const pkg = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
-const version = pkg.version;
+const version = versionOf(ROOT);
 const out = new URL("../dist/", import.meta.url);
 
 await rm(out, { recursive: true, force: true });
