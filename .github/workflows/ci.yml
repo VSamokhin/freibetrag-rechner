@@ -24,7 +24,7 @@ jobs:
           # The version is derived from the git history (scripts/version.mjs).
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
