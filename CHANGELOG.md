@@ -16,6 +16,8 @@ and versions follow `major.minor.build`, where the build part is derived from th
   its name, each institution card shows its holder and can be moved to the other one, and the results list is
   grouped by holder with a subtotal each; the overall total is unchanged. Renaming a holder updates every place
   the name appears. Older saves load with every institution assigned to the first holder.
+- The app is hosted on GitHub Pages at https://vsamokhin.github.io/freibetrag-rechner/ (SOA-25), deployed only
+  from published releases; Release Drafter keeps the next release as a draft.
 
 ### Fixed
 

@@ -29,7 +29,7 @@ you send each of them a **Freistellungsauftrag**.
 
 ## Using it
 
-1. Open the hosted app in Chrome on Android, e.g. `https://vsamokhin.github.io/freibetrag-rechner/`.
+1. Open the hosted app in Chrome on Android: <https://vsamokhin.github.io/freibetrag-rechner/>.
 2. Tap the menu, then **Install app** (or **Add to Home screen**).
 3. The app opens fullscreen and works without an internet connection.
 
@@ -108,6 +108,18 @@ name, so installed apps pick up new versions. `node scripts/version.mjs` prints 
 `node scripts/version.mjs --base` prints the committed base.
 
 Notable changes are listed per minor version in [CHANGELOG.md](CHANGELOG.md).
+
+## Releases
+
+The hosted app on GitHub Pages is deployed **only from published releases**:
+
+- [Release Drafter](.github/workflows/release-drafter.yml) keeps a draft release named after the current version
+  of `main` (`v0.2.3`), with the merged pull requests as notes, grouped by their branch prefix: `feature/`,
+  `bugfix/` and `chore/` pull requests are labelled automatically.
+- Publishing that draft creates the tag, and [Deploy to GitHub Pages](.github/workflows/pages.yml) builds the tag
+  after the full `npm run verify`, checks that it builds the release's version, and deploys it.
+- **Run workflow** on that workflow redeploys the latest release, or a tag you name.
+- Pushes to `main` never change the hosted app by themselves.
 
 ## License
 
