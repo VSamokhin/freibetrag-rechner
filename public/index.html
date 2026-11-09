@@ -414,6 +414,12 @@
         border-bottom: none;
         font-weight: 700;
       }
+      /* Names are user text: a long word without spaces wraps instead of running past the edge. */
+      .result-name,
+      #confirm-text {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
       .num {
         font-variant-numeric: tabular-nums;
         white-space: nowrap;

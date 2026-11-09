@@ -115,6 +115,8 @@ describe("app", () => {
     expect($("#results").hidden).toBe(false);
     expect($$("#results-list li").map((li) => li.textContent.replace(/\s/g, " "))).toEqual(["DKB400 €"]);
     expect($("#results-title").textContent).toBe("Freistellungsaufträge 2026");
+    // The name gets its own class so a long word without spaces can wrap (SOA-34).
+    expect($$("#results-list li .result-name").map((el) => el.textContent)).toEqual(["DKB"]);
   });
 
   it("renames and removes banks", () => {

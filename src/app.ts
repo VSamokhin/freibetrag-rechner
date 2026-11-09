@@ -373,6 +373,7 @@ export class App {
     const li = this.doc.createElement("li");
     if (className) li.className = className;
     const name = this.doc.createElement("span");
+    name.className = "result-name";
     name.textContent = label;
     const amount = this.doc.createElement("span");
     amount.className = "num";
