@@ -227,12 +227,54 @@
         font-size: 0.9rem;
         font-variant-numeric: tabular-nums;
       }
+      #holders {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 8px;
+        margin: -4px 0 16px;
+        border: none;
+        padding: 0;
+      }
+      #holders legend {
+        grid-column: 1 / -1;
+        padding: 0;
+        margin-bottom: 4px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      #add-holder,
+      .holder {
+        font: inherit;
+        color: var(--text);
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 6px 8px;
+        min-width: 0;
+        max-width: 40%;
+      }
+      .holder {
+        font-size: 0.85rem;
+        color: var(--muted);
+        flex: none;
+      }
+      #results .group {
+        font-weight: 600;
+        padding-top: 12px;
+      }
+      #results .group:first-child {
+        padding-top: 0;
+      }
+      #results .grouped li:not(.group) {
+        padding-left: 12px;
+      }
       #add-form {
         display: flex;
         gap: 8px;
         margin-bottom: 12px;
       }
       #add-name,
+      .holder-name,
       .name,
       .amount input {
         font: inherit;
@@ -430,6 +472,17 @@
       }
       /* Small phones (≤ 359 px): tighten the amount row so the max label keeps room. */
       @media (max-width: 359px) {
+        /* The name field gets its own line, holder picker and Add button share the next one. */
+        #add-form {
+          flex-wrap: wrap;
+        }
+        #add-name {
+          flex-basis: 100%;
+        }
+        #add-holder {
+          flex: 1;
+          max-width: none;
+        }
         .inst {
           padding: 12px 10px;
         }
@@ -499,6 +552,12 @@
           >
         </div>
 
+        <fieldset id="holders" hidden>
+          <legend data-i18n="holdersTitle">Account holders</legend>
+          <input class="holder-name" data-holder="0" type="text" maxlength="60" autocomplete="off" />
+          <input class="holder-name" data-holder="1" type="text" maxlength="60" autocomplete="off" />
+        </fieldset>
+
         <section id="summary" aria-live="polite">
           <div class="label" data-i18n="stillAvailable">Still available</div>
           <div id="remaining">–</div>
@@ -517,6 +576,7 @@
             aria-label="New institution name"
             data-i18n-label="addLabel"
           />
+          <select id="add-holder" aria-label="Account holder" data-i18n-label="holderLabel" hidden></select>
           <button class="primary" type="submit" data-i18n="add">Add</button>
         </form>
 
@@ -556,6 +616,7 @@
             data-i18n-label="institutionName"
             maxlength="60"
           />
+          <select class="holder" aria-label="Account holder" data-i18n-label="holderLabel" hidden></select>
           <button
             class="del"
             type="button"

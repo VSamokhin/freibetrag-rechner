@@ -55,6 +55,8 @@ export interface StaticTexts {
   plusOne: string;
   fillRest: string;
   fillRestTitle: string;
+  holdersTitle: string;
+  holderLabel: string;
 }
 
 export type StaticKey = keyof StaticTexts;
@@ -74,6 +76,7 @@ export interface Messages {
   usedOf: (used: string, total: string) => string;
   max: (amount: string) => string;
   resultsTitle: (year: number) => string;
+  holderName: (n: number) => string;
 }
 
 const en: Messages = {
@@ -105,6 +108,8 @@ const en: Messages = {
     plusOne: "Plus 1 €",
     fillRest: "+ rest",
     fillRestTitle: "Assign all remaining to this institution",
+    holdersTitle: "Account holders",
+    holderLabel: "Account holder",
   },
   saved: "saved",
   notSaved: "no save yet",
@@ -120,6 +125,7 @@ const en: Messages = {
   usedOf: (used, total) => `${used} of ${total} assigned`,
   max: (amount) => `max ${amount}`,
   resultsTitle: (year) => `Freistellungsaufträge ${String(year)}`,
+  holderName: (n) => `Name of account holder ${String(n)}`,
 };
 
 const de: Messages = {
@@ -151,6 +157,8 @@ const de: Messages = {
     plusOne: "Plus 1 €",
     fillRest: "+ Rest",
     fillRestTitle: "Den ganzen Rest diesem Institut zuweisen",
+    holdersTitle: "Kontoinhaber",
+    holderLabel: "Kontoinhaber",
   },
   saved: "gespeichert",
   notSaved: "noch nicht gespeichert",
@@ -166,6 +174,7 @@ const de: Messages = {
   usedOf: (used, total) => `${used} von ${total} verteilt`,
   max: (amount) => `max. ${amount}`,
   resultsTitle: (year) => `Freistellungsaufträge ${String(year)}`,
+  holderName: (n) => `Name von Kontoinhaber ${String(n)}`,
 };
 
 const MESSAGES: Readonly<Record<Lang, Messages>> = { en, de };

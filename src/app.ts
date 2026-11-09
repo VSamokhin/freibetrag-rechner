@@ -3,20 +3,24 @@
  * All amount and year rules live in ./model.ts.
  */
 import {
+  type Holder,
   type Institution,
   type Mode,
   type Store,
   type YearState,
   LEGACY_KEY,
   STORAGE_KEY,
+  HOLDERS,
   TOTALS,
   addInstitution,
   allocations,
+  allocationsByHolder,
   cleanName,
   copyYear,
   createId,
   emptyYear,
   formatEuro,
+  isHolder,
   isMode,
   maxFor,
   needsScaling,
@@ -24,6 +28,7 @@ import {
   previousSave,
   remainingOf,
   removeInstitution,
+  renameHolder,
   setAmount,
   switchMode,
   totalOf,
@@ -169,11 +174,26 @@ export class App {
     this.render();
   }
 
-  add(name: string): void {
-    if (addInstitution(this.cur(), name, createId())) {
+  add(name: string, holder: Holder = 0): void {
+    if (addInstitution(this.cur(), name, createId(), holder)) {
       this.save();
       this.render();
     }
+  }
+
+  /** Renames a joint-mode account holder everywhere (holder pickers and results); blank names are ignored. */
+  renameHolder(holder: Holder, name: string): void {
+    if (renameHolder(this.cur(), holder, name)) this.save();
+    this.render();
+  }
+
+  /** Assigns an institution to the other account holder. */
+  setHolder(id: string, holder: Holder): void {
+    const inst = this.cur().institutions.find((i) => i.id === id);
+    if (!inst) return;
+    inst.holder = holder;
+    this.save();
+    this.renderResults();
   }
 
   remove(id: string): void {
@@ -252,6 +272,19 @@ export class App {
     for (const radio of this.doc.querySelectorAll<HTMLInputElement>("input[name=mode]")) {
       radio.checked = radio.value === state.mode;
     }
+    const joint = state.mode === "joint";
+    this.el("#holders").hidden = !joint;
+    for (const input of this.doc.querySelectorAll<HTMLInputElement>(".holder-name")) {
+      const holder = Number(input.dataset.holder);
+      if (!isHolder(holder)) continue;
+      input.value = state.holders[holder];
+      input.setAttribute("aria-label", this.t.holderName(holder + 1));
+    }
+    const addHolder = this.el("#add-holder", HTMLSelectElement);
+    const picked = addHolder.value;
+    this.fillHolders(addHolder, state);
+    if (picked !== "") addHolder.value = picked;
+    addHolder.hidden = !joint;
     this.el("#list").replaceChildren(...state.institutions.map((inst) => this.rowFor(inst)));
     this.el("#empty").hidden = state.institutions.length > 0;
     this.updateSummary();
@@ -291,23 +324,49 @@ export class App {
     this.renderResults();
   }
 
-  /** Summary of what to send where: non-zero amounts only. */
+  /** Puts one option per account holder, named after them, into a holder picker. */
+  private fillHolders(select: HTMLSelectElement, state: YearState): void {
+    select.replaceChildren(
+      ...HOLDERS.map((holder) => {
+        const option = this.doc.createElement("option");
+        option.value = String(holder);
+        option.textContent = state.holders[holder];
+        return option;
+      }),
+    );
+  }
+
+  private resultLine(label: string, value: number, className?: string): HTMLLIElement {
+    const li = this.doc.createElement("li");
+    if (className) li.className = className;
+    const name = this.doc.createElement("span");
+    name.textContent = label;
+    const amount = this.doc.createElement("span");
+    amount.className = "num";
+    amount.textContent = formatEuro(value);
+    li.append(name, amount);
+    return li;
+  }
+
+  /**
+   * Summary of what to send where: non-zero amounts only. In joint mode it is grouped by
+   * account holder, with a subtotal per person; the overall total stays the same.
+   */
   private renderResults(): void {
     const state = this.cur();
     const items = allocations(state);
+    const joint = state.mode === "joint";
     this.el("#results").hidden = items.length === 0;
     this.el("#results-title").textContent = this.t.resultsTitle(this.store.current);
-    this.el("#results-list").replaceChildren(
-      ...items.map((inst) => {
-        const li = this.doc.createElement("li");
-        const name = this.doc.createElement("span");
-        name.textContent = inst.name;
-        const amount = this.doc.createElement("span");
-        amount.className = "num";
-        amount.textContent = formatEuro(inst.amount);
-        li.append(name, amount);
-        return li;
-      }),
+    const list = this.el("#results-list");
+    list.classList.toggle("grouped", joint);
+    list.replaceChildren(
+      ...(joint
+        ? allocationsByHolder(state).flatMap((group) => [
+            this.resultLine(group.name, group.total, "group"),
+            ...group.items.map((inst) => this.resultLine(inst.name, inst.amount)),
+          ])
+        : items.map((inst) => this.resultLine(inst.name, inst.amount))),
     );
     this.el("#results-total").textContent = formatEuro(usedOf(state));
   }
@@ -328,6 +387,18 @@ export class App {
           this.renderResults();
         }
         name.value = inst.name;
+      });
+    }
+
+    const holder = row.querySelector<HTMLSelectElement>(".holder");
+    if (holder) {
+      const state = this.cur();
+      this.fillHolders(holder, state);
+      holder.value = String(inst.holder);
+      holder.hidden = state.mode !== "joint";
+      holder.addEventListener("change", () => {
+        const value = Number(holder.value);
+        if (isHolder(value)) this.setHolder(inst.id, value);
       });
     }
 
@@ -456,10 +527,19 @@ export class App {
       });
     }
 
+    for (const field of this.doc.querySelectorAll<HTMLInputElement>(".holder-name")) {
+      field.addEventListener("change", () => {
+        const holder = Number(field.dataset.holder);
+        if (isHolder(holder)) this.renameHolder(holder, field.value);
+      });
+    }
+
     const input = this.el("#add-name", HTMLInputElement);
+    const addHolder = this.el("#add-holder", HTMLSelectElement);
     this.el("#add-form").addEventListener("submit", (e) => {
       e.preventDefault();
-      this.add(input.value);
+      const holder = Number(addHolder.value);
+      this.add(input.value, isHolder(holder) ? holder : 0);
       input.value = "";
       input.focus();
     });

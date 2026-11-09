@@ -12,6 +12,8 @@ you send each of them a **Freistellungsauftrag**.
 ## Features
 
 - **Single or joint:** 1.000 € for one person, or 2.000 € shared by a couple assessed jointly.
+- **Account holders (joint):** name both people, assign each institution to one of them, and see the results
+  grouped by person.
 - **Institutions:** add, rename and remove banks and brokers.
 - **Precise amounts:** each institution has a slider that moves in 10 € steps, −/+ buttons for 1 € steps
   (hold one down to repeat), a number field, and a "+ rest" button.

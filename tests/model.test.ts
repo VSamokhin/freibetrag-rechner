@@ -5,6 +5,7 @@ import {
   type YearState,
   addInstitution,
   allocations,
+  allocationsByHolder,
   cleanName,
   copyYear,
   createId,
@@ -17,6 +18,7 @@ import {
   previousSave,
   remainingOf,
   removeInstitution,
+  renameHolder,
   setAmount,
   switchMode,
   totalOf,
@@ -25,7 +27,13 @@ import {
 
 const year = (mode: YearState["mode"], ...amounts: number[]): YearState => ({
   mode,
-  institutions: amounts.map((amount, i) => ({ id: `i${String(i)}`, name: `Bank ${String(i)}`, amount })),
+  institutions: amounts.map((amount, i) => ({
+    id: `i${String(i)}`,
+    name: `Bank ${String(i)}`,
+    amount,
+    holder: 0,
+  })),
+  holders: ["Person 1", "Person 2"],
 });
 
 describe("totals and balances", () => {
@@ -94,8 +102,9 @@ describe("institutions", () => {
     const s = year("single");
     expect(addInstitution(s, "   ", "x")).toBeNull();
     const inst = addInstitution(s, "  ING  ", "a");
-    expect(inst).toEqual({ id: "a", name: "ING", amount: 0 });
-    expect(s.institutions).toHaveLength(1);
+    expect(inst).toEqual({ id: "a", name: "ING", amount: 0, holder: 0 });
+    expect(addInstitution(s, "DKB", "b", 1)?.holder).toBe(1);
+    expect(s.institutions).toHaveLength(2);
   });
 
   it("limits name length", () => {
@@ -110,6 +119,37 @@ describe("institutions", () => {
 
   it("lists only non-zero allocations", () => {
     expect(allocations(year("single", 0, 200, 0)).map((i) => i.amount)).toEqual([200]);
+  });
+});
+
+describe("account holders (joint mode)", () => {
+  it("starts with two default names", () => {
+    expect(newStore(2026).years["2026"]!.holders).toEqual(["Person 1", "Person 2"]);
+  });
+
+  it("renames a holder and ignores blank names", () => {
+    const s = year("joint");
+    expect(renameHolder(s, 1, "  Anna  ")).toBe(true);
+    expect(renameHolder(s, 0, "   ")).toBe(false);
+    expect(s.holders).toEqual(["Person 1", "Anna"]);
+  });
+
+  it("groups non-zero allocations by holder, keeping the overall total", () => {
+    const s = year("joint", 300, 0, 200, 500);
+    s.institutions[2]!.holder = 1;
+    s.institutions[3]!.holder = 1;
+    s.holders = ["Max", "Anna"];
+    const groups = allocationsByHolder(s);
+    expect(groups.map((g) => [g.name, g.items.map((i) => i.name), g.total])).toEqual([
+      ["Max", ["Bank 0"], 300],
+      ["Anna", ["Bank 2", "Bank 3"], 700],
+    ]);
+    expect(groups.reduce((sum, g) => sum + g.total, 0)).toBe(usedOf(s));
+  });
+
+  it("leaves out holders without allocations", () => {
+    const s = year("joint", 0, 100);
+    expect(allocationsByHolder(s).map((g) => g.holder)).toEqual([0]);
   });
 });
 
@@ -129,6 +169,8 @@ describe("years", () => {
     expect(src.institutions[0]!.amount).toBe(100);
     expect(copy.institutions[0]!.id).toBe("new0");
     expect(copy.mode).toBe("joint");
+    copy.holders[0] = "Max";
+    expect(src.holders[0]).toBe("Person 1");
   });
 });
 
@@ -169,6 +211,41 @@ describe("parseStore", () => {
     expect(parseStore("{nope", "[]", 2026)).toEqual(newStore(2026));
     expect(parseStore(JSON.stringify({ version: 1 }), JSON.stringify({ mode: "single" }), 2026)).toEqual(
       newStore(2026),
+    );
+  });
+
+  it("fills in holder data missing from saves made before account holders existed", () => {
+    const old = {
+      version: 2,
+      current: 2026,
+      years: { 2026: { mode: "joint", institutions: [{ id: "a", name: "ING", amount: 100 }] } },
+    };
+    expect(parseStore(JSON.stringify(old), null, 2026).years["2026"]).toEqual({
+      mode: "joint",
+      institutions: [{ id: "a", name: "ING", amount: 100, holder: 0 }],
+      holders: ["Person 1", "Person 2"],
+    });
+  });
+
+  it("replaces blank stored holder names by the defaults", () => {
+    const stored = {
+      version: 2,
+      current: 2026,
+      years: { 2026: { ...year("joint"), holders: ["Max", " "] } },
+    };
+    expect(parseStore(JSON.stringify(stored), null, 2026).years["2026"]!.holders).toEqual([
+      "Max",
+      "Person 2",
+    ]);
+  });
+
+  it("rejects malformed holder data", () => {
+    const bank = { id: "a", name: "A", amount: 1 };
+    expect(isYearState({ mode: "joint", institutions: [{ ...bank, holder: 2 }] })).toBe(false);
+    expect(isYearState({ mode: "joint", institutions: [], holders: ["only one"] })).toBe(false);
+    expect(isYearState({ mode: "joint", institutions: [], holders: ["a", 3] })).toBe(false);
+    expect(isYearState({ mode: "joint", institutions: [{ ...bank, holder: 1 }], holders: ["a", "b"] })).toBe(
+      true,
     );
   });
 

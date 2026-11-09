@@ -147,6 +147,67 @@ describe("app", () => {
     expect(amounts()).toEqual(["1000"]);
   });
 
+  it("lets joint accounts be assigned to named holders and groups the results by them", () => {
+    addBank("ING");
+    expect($("#holders").hidden).toBe(true);
+    expect($("#add-holder").hidden).toBe(true);
+    expect($(".holder").hidden).toBe(true);
+    const joint = $<HTMLInputElement>("#m-joint");
+    joint.checked = true;
+    joint.dispatchEvent(new Event("change"));
+
+    expect($("#holders").hidden).toBe(false);
+    const fields = $$<HTMLInputElement>(".holder-name");
+    expect(fields.map((f) => f.value)).toEqual(["Person 1", "Person 2"]);
+    expect(fields[1]!.getAttribute("aria-label")).toBe("Name of account holder 2");
+
+    // A new institution goes to the holder picked next to the name field.
+    const addHolder = $<HTMLSelectElement>("#add-holder");
+    expect(addHolder.hidden).toBe(false);
+    addHolder.value = "1";
+    addBank("DKB");
+    expect(addHolder.value).toBe("1");
+    expect(saved().years["2026"]!.institutions.map((i) => i.holder)).toEqual([0, 1]);
+    const pickers = $$<HTMLSelectElement>("#list .holder");
+    expect(pickers.map((p) => [p.hidden, p.value])).toEqual([
+      [false, "0"],
+      [false, "1"],
+    ]);
+
+    typeAmount(0, "300");
+    typeAmount(1, "500");
+    const lines = (): string[] => $$("#results-list li").map((li) => plain(li.textContent));
+    expect(lines()).toEqual(["Person 1300 €", "ING300 €", "Person 2500 €", "DKB500 €"]);
+    expect(plain($("#results-total").textContent)).toBe("800 €");
+
+    // Renaming a holder updates the pickers and the results.
+    fields[0]!.value = "  Max ";
+    fields[0]!.dispatchEvent(new Event("change"));
+    expect(saved().years["2026"]!.holders).toEqual(["Max", "Person 2"]);
+    expect($$<HTMLSelectElement>("#list .holder")[0]!.selectedOptions[0]!.textContent).toBe("Max");
+    expect(addHolder.options[0]!.textContent).toBe("Max");
+    expect(lines()[0]).toBe("Max300 €");
+    fields[1]!.value = " ";
+    fields[1]!.dispatchEvent(new Event("change"));
+    expect(fields[1]!.value).toBe("Person 2");
+
+    // Moving an institution to the other holder regroups the results.
+    const second = $$<HTMLSelectElement>("#list .holder")[1]!;
+    second.value = "0";
+    second.dispatchEvent(new Event("change"));
+    expect(lines()).toEqual(["Max800 €", "ING300 €", "DKB500 €"]);
+    expect(saved().years["2026"]!.institutions[1]!.holder).toBe(0);
+
+    // Single mode hides the holders and shows a flat list, but keeps the assignments.
+    const single = $<HTMLInputElement>("#m-single");
+    single.checked = true;
+    single.dispatchEvent(new Event("change"));
+    expect($("#holders").hidden).toBe(true);
+    expect($$<HTMLSelectElement>("#list .holder")[0]!.hidden).toBe(true);
+    expect(lines()).toEqual(["ING300 €", "DKB500 €"]);
+    expect(saved().years["2026"]!.holders[0]).toBe("Max");
+  });
+
   it("resets all amounts", () => {
     addBank("ING");
     typeAmount(0, "300");
