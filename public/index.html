@@ -502,6 +502,33 @@
           padding: 6px 8px;
         }
       }
+      #confirm {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: rgba(0, 0, 0, 0.45);
+      }
+      .confirm-box {
+        width: 100%;
+        max-width: 400px;
+        background: var(--card);
+        border-radius: 16px;
+        padding: 18px 16px 14px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+      }
+      #confirm-text {
+        margin: 0 0 16px;
+      }
+      .confirm-actions {
+        display: flex;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
       #empty {
         color: var(--muted);
         text-align: center;
@@ -607,6 +634,15 @@
         </button>
       </div>
     </main>
+    <div id="confirm" hidden>
+      <div class="confirm-box" role="alertdialog" aria-modal="true" aria-labelledby="confirm-text">
+        <p id="confirm-text"></p>
+        <div class="confirm-actions">
+          <button id="confirm-cancel" type="button" data-i18n="cancel">Cancel</button>
+          <button id="confirm-ok" class="primary" type="button" data-i18n="ok">OK</button>
+        </div>
+      </div>
+    </div>
     <template id="row-template">
       <li class="inst">
         <div class="inst-head">

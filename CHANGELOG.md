@@ -22,6 +22,9 @@ and versions follow `major.minor.build`, where the build part is derived from th
 - Scrolling no longer moves sliders by accident: a vertical swipe that starts on a slider scrolls the page and
   leaves the amount unchanged. A slider follows only a sideways drag, and a tap on its track jumps there when the
   finger is lifted in place.
+- Reset amounts, Delete this year, removing a bank with an amount and scaling down when switching to Single
+  ask in the app's own dialog instead of the browser's confirmation popup, which embedded pages such as previews
+  block silently, so the buttons seemed to do nothing.
 
 ## [0.2.0] - 2026-11-09
 

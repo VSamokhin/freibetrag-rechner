@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App, keyTarget } from "../src/app";
 import { LANG_KEY } from "../src/i18n";
 import { STORAGE_KEY, type Store } from "../src/model";
@@ -38,7 +38,13 @@ function typeAmount(index: number, value: string): void {
 
 let storage: MemoryStorage;
 let app: App;
-let confirmSpy: MockInstance<(message?: string) => boolean>;
+
+/** Answers the in-page confirmation dialog. */
+function answer(yes: boolean): void {
+  expect($("#confirm").hidden).toBe(false);
+  $(yes ? "#confirm-ok" : "#confirm-cancel").click();
+  expect($("#confirm").hidden).toBe(true);
+}
 
 function mount(year = 2026): void {
   document.body.innerHTML = body;
@@ -50,7 +56,6 @@ const saved = (): Store => JSON.parse(storage.getItem(STORAGE_KEY)!) as Store;
 
 beforeEach(() => {
   storage = new MemoryStorage();
-  confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
   mount();
 });
 
@@ -122,10 +127,15 @@ describe("app", () => {
     name.dispatchEvent(new Event("change"));
     expect(name.value).toBe("ING DiBa");
     typeAmount(0, "100");
-    confirmSpy.mockReturnValueOnce(false);
     $(".del").click();
+    answer(false);
     expect($$(".inst")).toHaveLength(1);
     $(".del").click();
+    answer(true);
+    expect($$(".inst")).toHaveLength(0);
+    addBank("DKB");
+    $(".del").click(); // nothing assigned: removed without asking
+    expect($("#confirm").hidden).toBe(true);
     expect($$(".inst")).toHaveLength(0);
   });
 
@@ -136,13 +146,14 @@ describe("app", () => {
     joint.dispatchEvent(new Event("change"));
     typeAmount(0, "1600");
     const single = $<HTMLInputElement>("#m-single");
-    confirmSpy.mockReturnValueOnce(false);
     single.checked = true;
     single.dispatchEvent(new Event("change"));
+    answer(false);
     expect(app.state?.mode).toBe("joint");
     expect(joint.checked).toBe(true);
     single.checked = true;
     single.dispatchEvent(new Event("change"));
+    answer(true);
     expect(app.state?.mode).toBe("single");
     expect(amounts()).toEqual(["1000"]);
   });
@@ -208,11 +219,40 @@ describe("app", () => {
     expect(saved().years["2026"]!.holders[0]).toBe("Max");
   });
 
-  it("resets all amounts", () => {
+  it("resets all amounts after confirmation", () => {
+    $("#reset").click(); // nothing to reset: no question
+    expect($("#confirm").hidden).toBe(true);
     addBank("ING");
     typeAmount(0, "300");
     $("#reset").click();
+    expect(plain($("#confirm-text").textContent)).toBe("Set all amounts to 0 €?");
+    answer(false);
+    expect(amounts()).toEqual(["300"]);
+    $("#reset").click();
+    answer(true);
     expect(amounts()).toEqual(["0"]);
+    expect(saved().years["2026"]!.institutions[0]!.amount).toBe(0);
+  });
+
+  it("cancels the confirmation with Escape or a tap outside, and returns focus", () => {
+    addBank("ING");
+    typeAmount(0, "300");
+    const reset = $<HTMLButtonElement>("#reset");
+    reset.focus();
+    reset.click();
+    expect(document.activeElement).toBe($("#confirm-cancel"));
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    expect($("#confirm").hidden).toBe(true);
+    expect(document.activeElement).toBe(reset);
+    reset.click();
+    $(".confirm-box").click(); // inside the box: stays open
+    expect($("#confirm").hidden).toBe(false);
+    $("#confirm").click();
+    expect($("#confirm").hidden).toBe(true);
+    expect(amounts()).toEqual(["300"]);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })); // nothing open
+    $("#confirm-ok").click(); // stray click on a closed dialog
+    expect(amounts()).toEqual(["300"]);
   });
 
   it("starts a new year from the previous save or empty, and deletes years", () => {
@@ -233,6 +273,8 @@ describe("app", () => {
     $("#start-empty").click();
     expect($$(".inst")).toHaveLength(0);
     $("#delete-year").click();
+    expect($("#confirm-text").textContent).toBe("Delete the save for 2025? This cannot be undone.");
+    answer(true);
     expect($("#year-saved").textContent).toBe("no save yet");
     expect(Object.keys(saved().years)).toEqual(["2026", "2027"]);
   });
@@ -319,7 +361,8 @@ describe("language", () => {
     addBank("ING");
     typeAmount(0, "300");
     $(".del").click();
-    expect(plain(confirmSpy.mock.lastCall?.[0])).toBe("„ING“ entfernen und 300 € freigeben?");
+    expect(plain($("#confirm-text").textContent)).toBe("„ING“ entfernen und 300 € freigeben?");
+    expect($("#confirm-cancel").textContent).toBe("Abbrechen");
   });
 
   it("leaves elements with unknown keys or languages alone", () => {

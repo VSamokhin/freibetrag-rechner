@@ -64,6 +64,8 @@ export class App {
   private readonly storage: Pick<Storage, "getItem" | "setItem"> | undefined;
   private lang: Lang;
   private t: Messages;
+  /** The open confirmation question, if any. */
+  private pending: { onYes: () => void; onNo: () => void; returnFocus: HTMLElement | null } | null = null;
 
   constructor(
     private readonly doc: Document,
@@ -113,8 +115,28 @@ export class App {
     return found;
   }
 
-  private confirm(message: string): boolean {
-    return this.doc.defaultView?.confirm(message) ?? true;
+  /**
+   * Asks a yes/no question in the page's own dialog and calls `onYes` or `onNo` with the answer.
+   * The browser's `confirm()` is not used: embedded or sandboxed pages (such as previews) may
+   * silently block it, which made the guarded actions do nothing.
+   */
+  private ask(message: string, onYes: () => void, onNo: () => void = () => undefined): void {
+    const active = this.doc.activeElement;
+    this.pending = { onYes, onNo, returnFocus: active instanceof HTMLElement ? active : null };
+    this.el("#confirm-text").textContent = message;
+    this.el("#confirm").hidden = false;
+    this.el("#confirm-cancel").focus();
+  }
+
+  /** Closes the confirmation dialog with the given answer; does nothing if none is open. */
+  private answer(yes: boolean): void {
+    const pending = this.pending;
+    if (!pending) return;
+    this.pending = null;
+    this.el("#confirm").hidden = true;
+    pending.returnFocus?.focus();
+    if (yes) pending.onYes();
+    else pending.onNo();
   }
 
   save(): void {
@@ -154,26 +176,30 @@ export class App {
 
   deleteYear(): void {
     if (!this.state) return;
-    if (!this.confirm(this.t.confirmDeleteYear(this.store.current))) return;
-    // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- years are keyed by number
-    delete this.store.years[this.store.current];
-    this.save();
-    this.render();
+    const year = this.store.current;
+    this.ask(this.t.confirmDeleteYear(year), () => {
+      // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- years are keyed by number
+      delete this.store.years[year];
+      this.save();
+      this.render();
+    });
   }
 
   setMode(mode: Mode): void {
     const state = this.cur();
     if (mode === state.mode) return;
-    if (
-      needsScaling(state, mode) &&
-      !this.confirm(this.t.confirmScale(formatEuro(usedOf(state)), formatEuro(TOTALS[mode])))
-    ) {
+    const apply = (): void => {
+      switchMode(state, mode);
+      this.save();
       this.render();
+    };
+    if (!needsScaling(state, mode)) {
+      apply();
       return;
     }
-    switchMode(state, mode);
-    this.save();
-    this.render();
+    this.ask(this.t.confirmScale(formatEuro(usedOf(state)), formatEuro(TOTALS[mode])), apply, () => {
+      this.render();
+    });
   }
 
   add(name: string, holder: Holder = 0): void {
@@ -202,18 +228,23 @@ export class App {
     const state = this.cur();
     const inst = state.institutions.find((i) => i.id === id);
     if (!inst) return;
-    if (inst.amount > 0 && !this.confirm(this.t.confirmRemove(inst.name, formatEuro(inst.amount)))) return;
-    removeInstitution(state, id);
-    this.save();
-    this.render();
+    const apply = (): void => {
+      removeInstitution(state, id);
+      this.save();
+      this.render();
+    };
+    if (inst.amount > 0) this.ask(this.t.confirmRemove(inst.name, formatEuro(inst.amount)), apply);
+    else apply();
   }
 
   resetAmounts(): void {
     const state = this.cur();
-    if (state.institutions.length === 0 || !this.confirm(this.t.confirmReset)) return;
-    for (const inst of state.institutions) inst.amount = 0;
-    this.save();
-    this.updateSummary();
+    if (state.institutions.length === 0) return;
+    this.ask(this.t.confirmReset, () => {
+      for (const inst of state.institutions) inst.amount = 0;
+      this.save();
+      this.updateSummary();
+    });
   }
 
   private change(inst: Institution, value: number): void {
@@ -597,6 +628,19 @@ export class App {
     });
     this.el("#reset").addEventListener("click", () => {
       this.resetAmounts();
+    });
+    const dialog = this.el("#confirm");
+    this.el("#confirm-ok").addEventListener("click", () => {
+      this.answer(true);
+    });
+    this.el("#confirm-cancel").addEventListener("click", () => {
+      this.answer(false);
+    });
+    dialog.addEventListener("click", (e) => {
+      if (e.target === dialog) this.answer(false); // tap outside the box
+    });
+    this.doc.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && this.pending) this.answer(false);
     });
     for (const btn of this.doc.querySelectorAll<HTMLButtonElement>("[data-lang]")) {
       btn.addEventListener("click", () => {

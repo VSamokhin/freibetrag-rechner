@@ -57,6 +57,8 @@ export interface StaticTexts {
   fillRestTitle: string;
   holdersTitle: string;
   holderLabel: string;
+  cancel: string;
+  ok: string;
 }
 
 export type StaticKey = keyof StaticTexts;
@@ -110,6 +112,8 @@ const en: Messages = {
     fillRestTitle: "Assign all remaining to this institution",
     holdersTitle: "Account holders",
     holderLabel: "Account holder",
+    cancel: "Cancel",
+    ok: "OK",
   },
   saved: "saved",
   notSaved: "no save yet",
@@ -159,6 +163,8 @@ const de: Messages = {
     fillRestTitle: "Den ganzen Rest diesem Institut zuweisen",
     holdersTitle: "Kontoinhaber",
     holderLabel: "Kontoinhaber",
+    cancel: "Abbrechen",
+    ok: "OK",
   },
   saved: "gespeichert",
   notSaved: "noch nicht gespeichert",
