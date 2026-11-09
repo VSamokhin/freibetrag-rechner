@@ -41,6 +41,8 @@ import { APP_VERSION } from "./version";
 const THUMB = 26;
 /** Slider snapping in euros. */
 const SLIDER_STEP = 10;
+/** Pointer movement in px before a slider gesture counts as a drag (or as a scroll, if vertical). */
+const DRAG_SLOP = 8;
 
 export interface AppOptions {
   storage?: Pick<Storage, "getItem" | "setItem">;
@@ -436,8 +438,22 @@ export class App {
    * Tapping the track jumps there; grabbing the knob keeps the grab offset so it never jumps.
    * At the limit it stops at the exact remaining amount (e.g. 1.995 €).
    * Keyboard: arrows ±1 €, PageUp/PageDown ±10 €, Home/End to 0/max.
+   *
+   * Scrolling the page over a slider must not change it (SOA-33). The slider allows vertical panning
+   * (`touch-action: pan-y`), so the browser decides whether a touch is a scroll: if it is, the browser
+   * scrolls and sends `pointercancel`, and the amount goes back to where it was. Nothing changes on
+   * touch-down; the amount follows the pointer only once it has moved mostly sideways by more than
+   * {@link DRAG_SLOP} px, and a tap on the track jumps there only when the pointer is lifted in place.
    */
   private attachSlider(el: HTMLElement, inst: Institution): void {
+    interface Gesture {
+      startX: number;
+      startY: number;
+      startAmount: number;
+      onThumb: boolean;
+    }
+    let gesture: Gesture | null = null;
+    let dragging = false;
     let offset = 0;
     const valueAt = (clientX: number): number => {
       const rect = el.getBoundingClientRect();
@@ -448,27 +464,50 @@ export class App {
       const value = valueAt(clientX) - offset;
       this.change(inst, value >= max ? max : Math.round(value / SLIDER_STEP) * SLIDER_STEP);
     };
-
-    el.addEventListener("pointerdown", (e) => {
-      e.preventDefault();
-      el.focus();
-      el.setPointerCapture(e.pointerId);
-      el.classList.add("dragging");
-      const thumb = el.querySelector(".thumb")?.getBoundingClientRect();
-      const onThumb = !!thumb && e.clientX >= thumb.left - 8 && e.clientX <= thumb.right + 8;
-      offset = onThumb ? valueAt(e.clientX) - inst.amount : 0;
-      if (!onThumb) moveTo(e.clientX);
-    });
-    el.addEventListener("pointermove", (e) => {
-      if (el.hasPointerCapture(e.pointerId)) moveTo(e.clientX);
-    });
-    const end = (e: PointerEvent): void => {
+    const release = (e: PointerEvent): void => {
       if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
       el.classList.remove("dragging");
-      this.save();
+      gesture = null;
+      dragging = false;
     };
-    el.addEventListener("pointerup", end);
-    el.addEventListener("pointercancel", end);
+
+    el.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse") e.preventDefault(); // no text selection; touch keeps native panning
+      el.setPointerCapture(e.pointerId);
+      const thumb = el.querySelector(".thumb")?.getBoundingClientRect();
+      const onThumb = !!thumb && e.clientX >= thumb.left - 8 && e.clientX <= thumb.right + 8;
+      gesture = { startX: e.clientX, startY: e.clientY, startAmount: inst.amount, onThumb };
+      dragging = false;
+      offset = onThumb ? valueAt(e.clientX) - inst.amount : 0;
+    });
+    el.addEventListener("pointermove", (e) => {
+      if (!gesture || !el.hasPointerCapture(e.pointerId)) return;
+      if (!dragging) {
+        const dx = Math.abs(e.clientX - gesture.startX);
+        const dy = Math.abs(e.clientY - gesture.startY);
+        if (dx <= DRAG_SLOP && dy <= DRAG_SLOP) return;
+        if (dy >= dx) {
+          // Mostly vertical: a scroll, not a slide. Touch scrolls natively; ignore the rest.
+          release(e);
+          return;
+        }
+        dragging = true;
+        el.focus();
+        el.classList.add("dragging");
+      }
+      moveTo(e.clientX);
+    });
+    el.addEventListener("pointerup", (e) => {
+      if (gesture && !dragging && !gesture.onThumb) moveTo(e.clientX);
+      const changed = gesture !== null;
+      release(e);
+      if (changed) this.save();
+    });
+    el.addEventListener("pointercancel", (e) => {
+      // The browser took the gesture over (e.g. to scroll): undo whatever the drag changed.
+      if (gesture && inst.amount !== gesture.startAmount) this.change(inst, gesture.startAmount);
+      release(e);
+    });
 
     el.addEventListener("keydown", (e) => {
       const value = keyTarget(e.key, inst.amount, maxFor(this.cur(), inst));

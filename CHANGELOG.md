@@ -17,6 +17,12 @@ and versions follow `major.minor.build`, where the build part is derived from th
   grouped by holder with a subtotal each; the overall total is unchanged. Renaming a holder updates every place
   the name appears. Older saves load with every institution assigned to the first holder.
 
+### Fixed
+
+- Scrolling no longer moves sliders by accident: a vertical swipe that starts on a slider scrolls the page and
+  leaves the amount unchanged. A slider follows only a sideways drag, and a tap on its track jumps there when the
+  finger is lifted in place.
+
 ## [0.2.0] - 2026-11-09
 
 ### Added

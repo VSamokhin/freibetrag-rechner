@@ -344,7 +344,8 @@
         position: relative;
         height: 44px;
         margin: 2px 0;
-        touch-action: none;
+        /* Vertical swipes scroll the page; only sideways drags reach the slider (see attachSlider). */
+        touch-action: pan-y;
         cursor: pointer;
         outline: none;
       }

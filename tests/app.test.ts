@@ -358,9 +358,10 @@ describe("language", () => {
 
 describe("pointer interaction", () => {
   const captured = new Set<number>();
-  const pointer = (type: string, clientX = 0): Event => {
-    const e = new MouseEvent(type, { clientX, bubbles: true, cancelable: true });
+  const pointer = (type: string, clientX = 0, clientY = 0, pointerType = "touch"): Event => {
+    const e = new MouseEvent(type, { clientX, clientY, bubbles: true, cancelable: true });
     Object.defineProperty(e, "pointerId", { value: 1 });
+    Object.defineProperty(e, "pointerType", { value: pointerType });
     return e;
   };
 
@@ -385,37 +386,81 @@ describe("pointer interaction", () => {
     };
   }
 
-  it("jumps to a tapped position rounded to 10 € and follows the drag", () => {
+  it("jumps to a tapped position, rounded to 10 €, when the finger is lifted in place", () => {
     const slider = $$(".slider")[0]!;
     layout(slider);
-    slider.dispatchEvent(pointer("pointerdown", 13 + 113)); // middle of the track → 500 €
+    const down = pointer("pointerdown", 13 + 113, 20); // middle of the track → 500 €
+    slider.dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(false); // touch keeps native scrolling
+    expect(amounts()[0]).toBe("0"); // nothing changes on touch-down
+    slider.dispatchEvent(pointer("pointermove", 13 + 113 + 3, 22)); // jitter within the slop
+    expect(amounts()[0]).toBe("0");
+    slider.dispatchEvent(pointer("pointerup", 13 + 113, 20));
     expect(amounts()[0]).toBe("500");
-    expect(slider.classList.contains("dragging")).toBe(true);
-    slider.dispatchEvent(pointer("pointermove", 13 + 113 + 22)); // +22 px ≈ +97 € → 600 €
+    expect(saved().years["2026"]!.institutions[0]!.amount).toBe(500);
+  });
+
+  it("follows a sideways drag", () => {
+    const slider = $$(".slider")[0]!;
+    layout(slider);
+    slider.dispatchEvent(pointer("pointerdown", 13 + 113, 20));
+    slider.dispatchEvent(pointer("pointermove", 13 + 113 + 22, 24)); // +22 px ≈ +97 € → 600 €
     expect(amounts()[0]).toBe("600");
-    slider.dispatchEvent(pointer("pointerup"));
+    expect(slider.classList.contains("dragging")).toBe(true);
+    slider.dispatchEvent(pointer("pointerup", 13 + 113 + 22, 24));
     expect(slider.classList.contains("dragging")).toBe(false);
+    expect(amounts()[0]).toBe("600"); // a drag does not jump again on release
     slider.dispatchEvent(pointer("pointermove", 0)); // no capture any more → ignored
     expect(amounts()[0]).toBe("600");
+  });
+
+  it("ignores a vertical swipe that starts on the slider", () => {
+    typeAmount(0, "300");
+    const slider = $$(".slider")[0]!;
+    layout(slider);
+    slider.dispatchEvent(pointer("pointerdown", 200, 20));
+    slider.dispatchEvent(pointer("pointermove", 204, 60)); // mostly vertical → a scroll
+    slider.dispatchEvent(pointer("pointermove", 230, 61));
+    slider.dispatchEvent(pointer("pointerup", 230, 61));
+    expect(amounts()[0]).toBe("300");
+    expect(slider.classList.contains("dragging")).toBe(false);
+  });
+
+  it("restores the amount when the browser takes the gesture over to scroll", () => {
+    typeAmount(0, "300");
+    const slider = $$(".slider")[0]!;
+    layout(slider);
+    slider.dispatchEvent(pointer("pointerdown", 0.3 * 226 + 13, 20));
+    slider.dispatchEvent(pointer("pointermove", 0.3 * 226 + 13 + 45, 22));
+    expect(amounts()[0]).toBe("500");
+    slider.dispatchEvent(pointer("pointercancel"));
+    expect(amounts()[0]).toBe("300");
+    expect(slider.classList.contains("dragging")).toBe(false);
+    slider.dispatchEvent(pointer("pointercancel")); // a stray cancel changes nothing
+    expect(amounts()[0]).toBe("300");
   });
 
   it("stops at the exact free balance when dragged past it", () => {
     typeAmount(1, "5");
     const slider = $$(".slider")[0]!;
     layout(slider);
-    slider.dispatchEvent(pointer("pointerdown", 500));
+    slider.dispatchEvent(pointer("pointerdown", 500, 0, "mouse"));
+    slider.dispatchEvent(pointer("pointerup", 500, 0, "mouse"));
     expect(amounts()[0]).toBe("995");
-    slider.dispatchEvent(pointer("pointercancel"));
   });
 
-  it("keeps the grab offset when the thumb itself is dragged", () => {
+  it("keeps the grab offset when the thumb itself is dragged, and a thumb tap changes nothing", () => {
     typeAmount(0, "300");
     const slider = $$(".slider")[0]!;
     layout(slider);
     const x = 0.3 * 226 + 20; // on the thumb, slightly right of its centre
-    slider.dispatchEvent(pointer("pointerdown", x));
+    const down = pointer("pointerdown", x, 0, "mouse");
+    slider.dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(true); // no text selection with a mouse
+    slider.dispatchEvent(pointer("pointerup", x, 0, "mouse"));
     expect(amounts()[0]).toBe("300");
-    slider.dispatchEvent(pointer("pointermove", x + 45)); // ≈ +199 € → 500 €
+    slider.dispatchEvent(pointer("pointerdown", x, 0, "mouse"));
+    slider.dispatchEvent(pointer("pointermove", x + 45, 0, "mouse")); // ≈ +199 € → 500 €
     expect(amounts()[0]).toBe("500");
   });
 
