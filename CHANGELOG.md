@@ -2,11 +2,16 @@
 
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and the project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+and versions follow `major.minor.build`, where the build part is derived from the git history
+(see "Versioning" in README.md). Sections are kept per minor version.
 
 ## [Unreleased]
 
 ## [0.1.0] - 2026-11-09
+
+### Changed
+
+- The version is derived from the git history: base in `package.json` plus first-parent commits since it changed.
 
 ### Added
 

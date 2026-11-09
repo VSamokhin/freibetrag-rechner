@@ -77,23 +77,33 @@ The page also ships a strict Content Security Policy: scripts only from its own 
 src/model.ts     domain logic: amounts, limits, years, persistence format (pure, fully tested)
 src/app.ts       UI: rendering and interaction
 src/main.ts      entry point, service worker registration
-src/version.ts   app version, injected from package.json at build time
+src/version.ts   app version, injected at build time (see Versioning)
 public/          index.html, manifest, service worker, icons
-scripts/         build script
+scripts/         build script and git-derived version (version.mjs)
 tests/           unit tests (model) and DOM tests (app)
 ```
 
-## Versioning and releases
+## Versioning
 
-The project follows [Semantic Versioning](https://semver.org). The single source of truth is `version` in
-`package.json`. The build stamps it into the app (visible in the footer) and into the service worker's cache name,
-so installed apps pick up new releases.
+The version has the form `major.minor.build` and is **derived from the git history** by
+[`scripts/version.mjs`](scripts/version.mjs):
 
-To make a release:
+- `package.json` commits only a **base** version, e.g. `0.1.0`.
+- The real version is the base build part plus the number of first-parent commits since the commit that last
+  changed the `"version"` line. Example: base `0.1.0` with three commits on `main` since then gives `0.1.3`.
+- Nobody bumps the build part by hand. Every commit that reaches `main` (Dependabot merges included) gets a higher
+  version automatically, and parallel branches never conflict over a version bump.
+- **Minor:** raised by hand in the change that brings new functionality
+  (`npm version minor --no-git-tag-version`). The count restarts from that commit.
+- **Major:** raised only with the owner's agreement.
+- Builds need the full git history. CI checks out with `fetch-depth: 0`. In a shallow clone the build fails on
+  GitHub Actions and falls back to the base, with a warning, locally.
 
-1. Move the entries under `[Unreleased]` in [CHANGELOG.md](CHANGELOG.md) to a new version section.
-2. Run `npm version <patch|minor|major>`. This bumps `package.json`, commits and creates the `vX.Y.Z` tag.
-3. Run `git push --follow-tags`.
+The build stamps the derived version into the app (visible in the footer) and into the service worker's cache
+name, so installed apps pick up new versions. `node scripts/version.mjs` prints the current version, and
+`node scripts/version.mjs --base` prints the committed base.
+
+Notable changes are listed per minor version in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
