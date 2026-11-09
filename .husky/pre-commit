@@ -1,0 +1,3 @@
+# Runs every quality, security and test gate before a commit is created.
+# The same command runs in CI (.github/workflows/ci.yml), so local and CI results match.
+npm run verify
