@@ -5,6 +5,10 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+    # "labeled": adding the "preview" label builds and publishes a preview (previews.yml).
+    types: [opened, synchronize, reopened, labeled]
+  # "Run workflow" on a work branch also publishes a preview of it (previews.yml).
+  workflow_dispatch:
 
 permissions:
   contents: read
