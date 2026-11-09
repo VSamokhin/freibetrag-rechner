@@ -7,6 +7,18 @@ and versions follow `major.minor.build`, where the build part is derived from th
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-09
+
+### Added
+
+- German translation of the whole interface (SOA-27). The app starts in German when the browser prefers German,
+  in English otherwise; an EN/DE switch in the header changes it, and the choice is remembered on the device.
+
+### Fixed
+
+- Narrow phones (320 px): the amount row no longer pushes cards wider than the screen, the "max" label wraps
+  instead of being cut off, and four-digit amounts fit the number field.
+
 ## [0.1.0] - 2026-11-09
 
 ### Changed
@@ -24,5 +36,6 @@ and versions follow `major.minor.build`, where the build part is derived from th
 - Offline support and Android installation as a Progressive Web App.
 - App version shown in the footer.
 
-[Unreleased]: https://github.com/VSamokhin/freibetrag-rechner/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/VSamokhin/freibetrag-rechner/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/VSamokhin/freibetrag-rechner/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/VSamokhin/freibetrag-rechner/releases/tag/v0.1.0

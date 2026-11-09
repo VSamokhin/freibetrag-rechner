@@ -21,4 +21,7 @@ Never skip or weaken a gate to get green; fix the cause.
 ## Code
 
 - Domain rules live in `src/model.ts` (pure, fully unit-tested). UI lives in `src/app.ts`.
+- Every UI text lives in `src/i18n.ts`, in both English and German. Static page text is marked in
+  `public/index.html` with `data-i18n` (text), `data-i18n-label` (aria-label), `data-i18n-placeholder`
+  and `data-i18n-title`. Check new German text at 320 px width: it is often longer than the English.
 - No `innerHTML` or `eval`; the page ships a strict Content Security Policy.
