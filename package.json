@@ -1,6 +1,6 @@
 {
   "name": "freibetrag-rechner",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Offline web app to split the German Sparerpauschbetrag across banks for Freistellungsaufträge.",
   "private": true,
   "license": "MIT",

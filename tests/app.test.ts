@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App, keyTarget } from "../src/app";
 import { LANG_KEY } from "../src/i18n";
 import { STORAGE_KEY, type Store } from "../src/model";
@@ -38,7 +38,13 @@ function typeAmount(index: number, value: string): void {
 
 let storage: MemoryStorage;
 let app: App;
-let confirmSpy: MockInstance<(message?: string) => boolean>;
+
+/** Answers the in-page confirmation dialog. */
+function answer(yes: boolean): void {
+  expect($("#confirm").hidden).toBe(false);
+  $(yes ? "#confirm-ok" : "#confirm-cancel").click();
+  expect($("#confirm").hidden).toBe(true);
+}
 
 function mount(year = 2026): void {
   document.body.innerHTML = body;
@@ -50,7 +56,6 @@ const saved = (): Store => JSON.parse(storage.getItem(STORAGE_KEY)!) as Store;
 
 beforeEach(() => {
   storage = new MemoryStorage();
-  confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
   mount();
 });
 
@@ -122,10 +127,15 @@ describe("app", () => {
     name.dispatchEvent(new Event("change"));
     expect(name.value).toBe("ING DiBa");
     typeAmount(0, "100");
-    confirmSpy.mockReturnValueOnce(false);
     $(".del").click();
+    answer(false);
     expect($$(".inst")).toHaveLength(1);
     $(".del").click();
+    answer(true);
+    expect($$(".inst")).toHaveLength(0);
+    addBank("DKB");
+    $(".del").click(); // nothing assigned: removed without asking
+    expect($("#confirm").hidden).toBe(true);
     expect($$(".inst")).toHaveLength(0);
   });
 
@@ -136,22 +146,113 @@ describe("app", () => {
     joint.dispatchEvent(new Event("change"));
     typeAmount(0, "1600");
     const single = $<HTMLInputElement>("#m-single");
-    confirmSpy.mockReturnValueOnce(false);
     single.checked = true;
     single.dispatchEvent(new Event("change"));
+    answer(false);
     expect(app.state?.mode).toBe("joint");
     expect(joint.checked).toBe(true);
     single.checked = true;
     single.dispatchEvent(new Event("change"));
+    answer(true);
     expect(app.state?.mode).toBe("single");
     expect(amounts()).toEqual(["1000"]);
   });
 
-  it("resets all amounts", () => {
+  it("lets joint accounts be assigned to named holders and groups the results by them", () => {
+    addBank("ING");
+    expect($("#holders").hidden).toBe(true);
+    expect($("#add-holder").hidden).toBe(true);
+    expect($(".holder").hidden).toBe(true);
+    const joint = $<HTMLInputElement>("#m-joint");
+    joint.checked = true;
+    joint.dispatchEvent(new Event("change"));
+
+    expect($("#holders").hidden).toBe(false);
+    const fields = $$<HTMLInputElement>(".holder-name");
+    expect(fields.map((f) => f.value)).toEqual(["Person 1", "Person 2"]);
+    expect(fields[1]!.getAttribute("aria-label")).toBe("Name of account holder 2");
+
+    // A new institution goes to the holder picked next to the name field.
+    const addHolder = $<HTMLSelectElement>("#add-holder");
+    expect(addHolder.hidden).toBe(false);
+    addHolder.value = "1";
+    addBank("DKB");
+    expect(addHolder.value).toBe("1");
+    expect(saved().years["2026"]!.institutions.map((i) => i.holder)).toEqual([0, 1]);
+    const pickers = $$<HTMLSelectElement>("#list .holder");
+    expect(pickers.map((p) => [p.hidden, p.value])).toEqual([
+      [false, "0"],
+      [false, "1"],
+    ]);
+
+    typeAmount(0, "300");
+    typeAmount(1, "500");
+    const lines = (): string[] => $$("#results-list li").map((li) => plain(li.textContent));
+    expect(lines()).toEqual(["Person 1300 €", "ING300 €", "Person 2500 €", "DKB500 €"]);
+    expect(plain($("#results-total").textContent)).toBe("800 €");
+
+    // Renaming a holder updates the pickers and the results.
+    fields[0]!.value = "  Max ";
+    fields[0]!.dispatchEvent(new Event("change"));
+    expect(saved().years["2026"]!.holders).toEqual(["Max", "Person 2"]);
+    expect($$<HTMLSelectElement>("#list .holder")[0]!.selectedOptions[0]!.textContent).toBe("Max");
+    expect(addHolder.options[0]!.textContent).toBe("Max");
+    expect(lines()[0]).toBe("Max300 €");
+    fields[1]!.value = " ";
+    fields[1]!.dispatchEvent(new Event("change"));
+    expect(fields[1]!.value).toBe("Person 2");
+
+    // Moving an institution to the other holder regroups the results.
+    const second = $$<HTMLSelectElement>("#list .holder")[1]!;
+    second.value = "0";
+    second.dispatchEvent(new Event("change"));
+    expect(lines()).toEqual(["Max800 €", "ING300 €", "DKB500 €"]);
+    expect(saved().years["2026"]!.institutions[1]!.holder).toBe(0);
+
+    // Single mode hides the holders and shows a flat list, but keeps the assignments.
+    const single = $<HTMLInputElement>("#m-single");
+    single.checked = true;
+    single.dispatchEvent(new Event("change"));
+    expect($("#holders").hidden).toBe(true);
+    expect($$<HTMLSelectElement>("#list .holder")[0]!.hidden).toBe(true);
+    expect(lines()).toEqual(["ING300 €", "DKB500 €"]);
+    expect(saved().years["2026"]!.holders[0]).toBe("Max");
+  });
+
+  it("resets all amounts after confirmation", () => {
+    $("#reset").click(); // nothing to reset: no question
+    expect($("#confirm").hidden).toBe(true);
     addBank("ING");
     typeAmount(0, "300");
     $("#reset").click();
+    expect(plain($("#confirm-text").textContent)).toBe("Set all amounts to 0 €?");
+    answer(false);
+    expect(amounts()).toEqual(["300"]);
+    $("#reset").click();
+    answer(true);
     expect(amounts()).toEqual(["0"]);
+    expect(saved().years["2026"]!.institutions[0]!.amount).toBe(0);
+  });
+
+  it("cancels the confirmation with Escape or a tap outside, and returns focus", () => {
+    addBank("ING");
+    typeAmount(0, "300");
+    const reset = $<HTMLButtonElement>("#reset");
+    reset.focus();
+    reset.click();
+    expect(document.activeElement).toBe($("#confirm-cancel"));
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
+    expect($("#confirm").hidden).toBe(true);
+    expect(document.activeElement).toBe(reset);
+    reset.click();
+    $(".confirm-box").click(); // inside the box: stays open
+    expect($("#confirm").hidden).toBe(false);
+    $("#confirm").click();
+    expect($("#confirm").hidden).toBe(true);
+    expect(amounts()).toEqual(["300"]);
+    document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })); // nothing open
+    $("#confirm-ok").click(); // stray click on a closed dialog
+    expect(amounts()).toEqual(["300"]);
   });
 
   it("starts a new year from the previous save or empty, and deletes years", () => {
@@ -172,6 +273,8 @@ describe("app", () => {
     $("#start-empty").click();
     expect($$(".inst")).toHaveLength(0);
     $("#delete-year").click();
+    expect($("#confirm-text").textContent).toBe("Delete the save for 2025? This cannot be undone.");
+    answer(true);
     expect($("#year-saved").textContent).toBe("no save yet");
     expect(Object.keys(saved().years)).toEqual(["2026", "2027"]);
   });
@@ -258,7 +361,8 @@ describe("language", () => {
     addBank("ING");
     typeAmount(0, "300");
     $(".del").click();
-    expect(plain(confirmSpy.mock.lastCall?.[0])).toBe("„ING“ entfernen und 300 € freigeben?");
+    expect(plain($("#confirm-text").textContent)).toBe("„ING“ entfernen und 300 € freigeben?");
+    expect($("#confirm-cancel").textContent).toBe("Abbrechen");
   });
 
   it("leaves elements with unknown keys or languages alone", () => {
@@ -297,9 +401,10 @@ describe("language", () => {
 
 describe("pointer interaction", () => {
   const captured = new Set<number>();
-  const pointer = (type: string, clientX = 0): Event => {
-    const e = new MouseEvent(type, { clientX, bubbles: true, cancelable: true });
+  const pointer = (type: string, clientX = 0, clientY = 0, pointerType = "touch"): Event => {
+    const e = new MouseEvent(type, { clientX, clientY, bubbles: true, cancelable: true });
     Object.defineProperty(e, "pointerId", { value: 1 });
+    Object.defineProperty(e, "pointerType", { value: pointerType });
     return e;
   };
 
@@ -324,37 +429,81 @@ describe("pointer interaction", () => {
     };
   }
 
-  it("jumps to a tapped position rounded to 10 € and follows the drag", () => {
+  it("jumps to a tapped position, rounded to 10 €, when the finger is lifted in place", () => {
     const slider = $$(".slider")[0]!;
     layout(slider);
-    slider.dispatchEvent(pointer("pointerdown", 13 + 113)); // middle of the track → 500 €
+    const down = pointer("pointerdown", 13 + 113, 20); // middle of the track → 500 €
+    slider.dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(false); // touch keeps native scrolling
+    expect(amounts()[0]).toBe("0"); // nothing changes on touch-down
+    slider.dispatchEvent(pointer("pointermove", 13 + 113 + 3, 22)); // jitter within the slop
+    expect(amounts()[0]).toBe("0");
+    slider.dispatchEvent(pointer("pointerup", 13 + 113, 20));
     expect(amounts()[0]).toBe("500");
-    expect(slider.classList.contains("dragging")).toBe(true);
-    slider.dispatchEvent(pointer("pointermove", 13 + 113 + 22)); // +22 px ≈ +97 € → 600 €
+    expect(saved().years["2026"]!.institutions[0]!.amount).toBe(500);
+  });
+
+  it("follows a sideways drag", () => {
+    const slider = $$(".slider")[0]!;
+    layout(slider);
+    slider.dispatchEvent(pointer("pointerdown", 13 + 113, 20));
+    slider.dispatchEvent(pointer("pointermove", 13 + 113 + 22, 24)); // +22 px ≈ +97 € → 600 €
     expect(amounts()[0]).toBe("600");
-    slider.dispatchEvent(pointer("pointerup"));
+    expect(slider.classList.contains("dragging")).toBe(true);
+    slider.dispatchEvent(pointer("pointerup", 13 + 113 + 22, 24));
     expect(slider.classList.contains("dragging")).toBe(false);
+    expect(amounts()[0]).toBe("600"); // a drag does not jump again on release
     slider.dispatchEvent(pointer("pointermove", 0)); // no capture any more → ignored
     expect(amounts()[0]).toBe("600");
+  });
+
+  it("ignores a vertical swipe that starts on the slider", () => {
+    typeAmount(0, "300");
+    const slider = $$(".slider")[0]!;
+    layout(slider);
+    slider.dispatchEvent(pointer("pointerdown", 200, 20));
+    slider.dispatchEvent(pointer("pointermove", 204, 60)); // mostly vertical → a scroll
+    slider.dispatchEvent(pointer("pointermove", 230, 61));
+    slider.dispatchEvent(pointer("pointerup", 230, 61));
+    expect(amounts()[0]).toBe("300");
+    expect(slider.classList.contains("dragging")).toBe(false);
+  });
+
+  it("restores the amount when the browser takes the gesture over to scroll", () => {
+    typeAmount(0, "300");
+    const slider = $$(".slider")[0]!;
+    layout(slider);
+    slider.dispatchEvent(pointer("pointerdown", 0.3 * 226 + 13, 20));
+    slider.dispatchEvent(pointer("pointermove", 0.3 * 226 + 13 + 45, 22));
+    expect(amounts()[0]).toBe("500");
+    slider.dispatchEvent(pointer("pointercancel"));
+    expect(amounts()[0]).toBe("300");
+    expect(slider.classList.contains("dragging")).toBe(false);
+    slider.dispatchEvent(pointer("pointercancel")); // a stray cancel changes nothing
+    expect(amounts()[0]).toBe("300");
   });
 
   it("stops at the exact free balance when dragged past it", () => {
     typeAmount(1, "5");
     const slider = $$(".slider")[0]!;
     layout(slider);
-    slider.dispatchEvent(pointer("pointerdown", 500));
+    slider.dispatchEvent(pointer("pointerdown", 500, 0, "mouse"));
+    slider.dispatchEvent(pointer("pointerup", 500, 0, "mouse"));
     expect(amounts()[0]).toBe("995");
-    slider.dispatchEvent(pointer("pointercancel"));
   });
 
-  it("keeps the grab offset when the thumb itself is dragged", () => {
+  it("keeps the grab offset when the thumb itself is dragged, and a thumb tap changes nothing", () => {
     typeAmount(0, "300");
     const slider = $$(".slider")[0]!;
     layout(slider);
     const x = 0.3 * 226 + 20; // on the thumb, slightly right of its centre
-    slider.dispatchEvent(pointer("pointerdown", x));
+    const down = pointer("pointerdown", x, 0, "mouse");
+    slider.dispatchEvent(down);
+    expect(down.defaultPrevented).toBe(true); // no text selection with a mouse
+    slider.dispatchEvent(pointer("pointerup", x, 0, "mouse"));
     expect(amounts()[0]).toBe("300");
-    slider.dispatchEvent(pointer("pointermove", x + 45)); // ≈ +199 € → 500 €
+    slider.dispatchEvent(pointer("pointerdown", x, 0, "mouse"));
+    slider.dispatchEvent(pointer("pointermove", x + 45, 0, "mouse")); // ≈ +199 € → 500 €
     expect(amounts()[0]).toBe("500");
   });
 
