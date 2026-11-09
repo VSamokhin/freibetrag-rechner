@@ -7,7 +7,7 @@ function start(): void {
   } catch {
     storage = undefined;
   }
-  new App(document, { storage }).mount();
+  new App(document, { storage, languages: navigator.languages }).mount();
 
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
     navigator.serviceWorker.register("sw.js").catch(() => {

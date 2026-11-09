@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { type MockInstance, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App, keyTarget } from "../src/app";
+import { LANG_KEY } from "../src/i18n";
 import { STORAGE_KEY, type Store } from "../src/model";
 
 const html = readFileSync(resolve(__dirname, "../public/index.html"), "utf8");
@@ -19,6 +20,8 @@ class MemoryStorage {
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string): T => document.querySelector<T>(sel)!;
 const $$ = <T extends HTMLElement = HTMLElement>(sel: string): T[] => [...document.querySelectorAll<T>(sel)];
+/** Intl puts a no-break space before €; compare with plain spaces. */
+const plain = (text: string | null | undefined): string => (text ?? "").replace(/\s/g, " ");
 const amounts = (): string[] => $$<HTMLInputElement>("#list input[type=number]").map((i) => i.value);
 
 function addBank(name: string): void {
@@ -201,6 +204,94 @@ describe("app", () => {
     expect(() => {
       new App(document, { storage, year: 2026 }).mount();
     }).toThrow(/Missing element/);
+  });
+});
+
+describe("language", () => {
+  function mountWith(languages: readonly string[]): void {
+    document.body.innerHTML = body;
+    app = new App(document, { storage, year: 2026, languages });
+    app.mount();
+  }
+
+  it("defaults to English and follows a German browser", () => {
+    expect(app.language).toBe("en");
+    expect(document.documentElement.lang).toBe("en");
+    mountWith(["de-DE", "en"]);
+    expect(app.language).toBe("de");
+    expect(document.documentElement.lang).toBe("de");
+    expect($("#summary .label").textContent).toBe("Noch verfügbar");
+    expect($('[data-lang="de"]').getAttribute("aria-pressed")).toBe("true");
+    expect($('[data-lang="en"]').getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("switches the whole page, rows included, and remembers the choice", () => {
+    addBank("ING");
+    typeAmount(0, "300");
+    $('[data-lang="de"]').click();
+    expect(storage.getItem(LANG_KEY)).toBe("de");
+    expect($("#add-form button").textContent).toBe("Hinzufügen");
+    expect($("#add-name").getAttribute("placeholder")).toBe("Bank oder Broker");
+    expect($("#prev-year").getAttribute("aria-label")).toBe("Vorheriges Jahr");
+    expect(plain($("#used").textContent)).toBe("300 € von 1.000 € verteilt");
+    expect($("#year-saved").textContent).toBe("gespeichert");
+    expect($(".inst .fill").textContent).toBe("+ Rest");
+    expect($(".inst .fill").getAttribute("title")).toBe("Den ganzen Rest diesem Institut zuweisen");
+    expect(plain($(".inst .max").textContent)).toBe("max. 1.000 €");
+    expect($(".inst .del").getAttribute("aria-label")).toBe("Institut entfernen");
+    expect($<HTMLInputElement>(".inst .name").value).toBe("ING");
+    expect(amounts()).toEqual(["300"]);
+
+    mountWith(["en"]);
+    expect(app.language).toBe("de");
+    $("#next-year").click();
+    expect($("#start-from").textContent).toBe("2026 übernehmen");
+    expect($("#year-saved").textContent).toBe("noch nicht gespeichert");
+
+    $('[data-lang="en"]').click();
+    expect($("#start-from").textContent).toBe("Copy 2026");
+    expect($("#start-empty").textContent).toBe("Start empty");
+  });
+
+  it("asks for confirmation in the chosen language", () => {
+    $('[data-lang="de"]').click();
+    addBank("ING");
+    typeAmount(0, "300");
+    $(".del").click();
+    expect(plain(confirmSpy.mock.lastCall?.[0])).toBe("„ING“ entfernen und 300 € freigeben?");
+  });
+
+  it("leaves elements with unknown keys or languages alone", () => {
+    document.body.innerHTML =
+      body +
+      '<p id="x" data-i18n="nope" data-i18n-title="nope">keep</p><button id="y" data-lang="fr">FR</button>';
+    app = new App(document, { storage, year: 2026 });
+    app.mount();
+    $("#y").click();
+    expect(app.language).toBe("en");
+    expect($("#x").textContent).toBe("keep");
+    expect($("#x").hasAttribute("title")).toBe(false);
+  });
+
+  it("ignores an unknown stored language", () => {
+    storage.setItem(LANG_KEY, "fr");
+    mountWith(["de"]);
+    expect(app.language).toBe("de");
+  });
+
+  it("still switches when storage throws", () => {
+    const broken = {
+      getItem: () => null,
+      setItem: () => {
+        throw new Error("blocked");
+      },
+    };
+    document.body.innerHTML = body;
+    const a = new App(document, { storage: broken, year: 2026 });
+    a.mount();
+    a.setLanguage("de");
+    expect(a.language).toBe("de");
+    expect($("#reset").textContent).toBe("Beträge zurücksetzen");
   });
 });
 

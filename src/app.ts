@@ -29,6 +29,7 @@ import {
   totalOf,
   usedOf,
 } from "./model";
+import { type Lang, type Messages, LANG_KEY, detectLang, isLang, isStaticKey, messagesFor } from "./i18n";
 import { APP_VERSION } from "./version";
 
 /** Thumb diameter in px; must match `.slider .thumb` in index.html. */
@@ -40,11 +41,22 @@ export interface AppOptions {
   storage?: Pick<Storage, "getItem" | "setItem">;
   /** Current calendar year, injectable for tests. */
   year?: number;
+  /** Preferred languages, e.g. `navigator.languages`; used until the user picks one. */
+  languages?: readonly string[];
 }
+
+/** `data-i18n-<name>` attribute → the attribute it fills with translated text. */
+const I18N_ATTRS: readonly (readonly [string, string])[] = [
+  ["data-i18n-label", "aria-label"],
+  ["data-i18n-placeholder", "placeholder"],
+  ["data-i18n-title", "title"],
+];
 
 export class App {
   private readonly store: Store;
   private readonly storage: Pick<Storage, "getItem" | "setItem"> | undefined;
+  private lang: Lang;
+  private t: Messages;
 
   constructor(
     private readonly doc: Document,
@@ -54,13 +66,21 @@ export class App {
     const year = options.year ?? new Date().getFullYear();
     let raw: string | null = null;
     let legacy: string | null = null;
+    let lang: string | null = null;
     try {
       raw = this.storage?.getItem(STORAGE_KEY) ?? null;
       legacy = this.storage?.getItem(LEGACY_KEY) ?? null;
+      lang = this.storage?.getItem(LANG_KEY) ?? null;
     } catch {
       // Storage can be unavailable (private mode, blocked site data): start fresh.
     }
     this.store = parseStore(raw, legacy, year);
+    this.lang = isLang(lang) ? lang : detectLang(options.languages ?? []);
+    this.t = messagesFor(this.lang);
+  }
+
+  get language(): Lang {
+    return this.lang;
   }
 
   /** The save of the year being viewed, or null if that year has none yet. */
@@ -100,6 +120,18 @@ export class App {
 
   // ---- actions -------------------------------------------------------------
 
+  setLanguage(lang: Lang): void {
+    this.lang = lang;
+    this.t = messagesFor(lang);
+    try {
+      this.storage?.setItem(LANG_KEY, lang);
+    } catch {
+      // Not remembered across starts, but the switch still applies now.
+    }
+    this.translate();
+    this.render();
+  }
+
   goToYear(year: number): void {
     this.store.current = year;
     this.save();
@@ -115,7 +147,7 @@ export class App {
 
   deleteYear(): void {
     if (!this.state) return;
-    if (!this.confirm(`Delete the save for ${String(this.store.current)}? This cannot be undone.`)) return;
+    if (!this.confirm(this.t.confirmDeleteYear(this.store.current))) return;
     // eslint-disable-next-line @typescript-eslint/no-dynamic-delete -- years are keyed by number
     delete this.store.years[this.store.current];
     this.save();
@@ -127,9 +159,7 @@ export class App {
     if (mode === state.mode) return;
     if (
       needsScaling(state, mode) &&
-      !this.confirm(
-        `Your allocations (${formatEuro(usedOf(state))}) exceed ${formatEuro(TOTALS[mode])}. Scale them down proportionally?`,
-      )
+      !this.confirm(this.t.confirmScale(formatEuro(usedOf(state)), formatEuro(TOTALS[mode])))
     ) {
       this.render();
       return;
@@ -150,8 +180,7 @@ export class App {
     const state = this.cur();
     const inst = state.institutions.find((i) => i.id === id);
     if (!inst) return;
-    if (inst.amount > 0 && !this.confirm(`Remove "${inst.name}" and free ${formatEuro(inst.amount)}?`))
-      return;
+    if (inst.amount > 0 && !this.confirm(this.t.confirmRemove(inst.name, formatEuro(inst.amount)))) return;
     removeInstitution(state, id);
     this.save();
     this.render();
@@ -159,7 +188,7 @@ export class App {
 
   resetAmounts(): void {
     const state = this.cur();
-    if (state.institutions.length === 0 || !this.confirm("Set all amounts to 0 €?")) return;
+    if (state.institutions.length === 0 || !this.confirm(this.t.confirmReset)) return;
     for (const inst of state.institutions) inst.amount = 0;
     this.save();
     this.updateSummary();
@@ -172,12 +201,35 @@ export class App {
 
   // ---- rendering -----------------------------------------------------------
 
+  /** Fills every `data-i18n*` element (row template included) with the current language. */
+  translate(): void {
+    const text = this.t.text;
+    this.doc.documentElement.lang = this.lang;
+    const roots: ParentNode[] = [this.doc];
+    for (const template of this.doc.querySelectorAll("template")) roots.push(template.content);
+    for (const root of roots) {
+      for (const el of root.querySelectorAll<HTMLElement>("[data-i18n]")) {
+        const key = String(el.dataset.i18n);
+        if (isStaticKey(key)) el.textContent = text[key];
+      }
+      for (const [source, attr] of I18N_ATTRS) {
+        for (const el of root.querySelectorAll(`[${source}]`)) {
+          const key = String(el.getAttribute(source));
+          if (isStaticKey(key)) el.setAttribute(attr, text[key]);
+        }
+      }
+    }
+    for (const btn of this.doc.querySelectorAll<HTMLButtonElement>("[data-lang]")) {
+      btn.setAttribute("aria-pressed", String(btn.dataset.lang === this.lang));
+    }
+  }
+
   render(): void {
     const state = this.state;
     const year = this.store.current;
     this.el("#year").textContent = String(year);
     const saved = this.el("#year-saved");
-    saved.textContent = state ? "saved" : "no save yet";
+    saved.textContent = state ? this.t.saved : this.t.notSaved;
     saved.classList.toggle("none", !state);
     this.el("#workspace").hidden = !state;
     this.el("#delete-year").hidden = !state;
@@ -187,12 +239,10 @@ export class App {
     if (!state) {
       const prev = previousSave(this.store, year);
       this.el("#start-text").textContent =
-        prev === null
-          ? `There is no save for ${String(year)} yet.`
-          : `There is no save for ${String(year)} yet. Start from your ${String(prev)} distribution, or with an empty list?`;
+        prev === null ? this.t.noSave(year) : this.t.noSaveCopy(year, prev);
       const fromBtn = this.el("#start-from");
       fromBtn.hidden = prev === null;
-      fromBtn.textContent = prev === null ? "" : `Copy ${String(prev)}`;
+      fromBtn.textContent = prev === null ? "" : this.t.copyYear(prev);
       fromBtn.onclick = () => {
         this.startYear(prev);
       };
@@ -214,7 +264,7 @@ export class App {
     const used = usedOf(state);
     const remaining = remainingOf(state);
     this.el("#remaining").textContent = formatEuro(remaining);
-    this.el("#used").textContent = `${formatEuro(used)} of ${formatEuro(total)} assigned`;
+    this.el("#used").textContent = this.t.usedOf(formatEuro(used), formatEuro(total));
     this.el("#bar-fill").style.width = `${String((used / total) * 100)}%`;
     this.el("#summary").classList.toggle("full", remaining === 0);
 
@@ -236,7 +286,7 @@ export class App {
         num.max = String(max);
       }
       const maxLabel = row.querySelector(".max");
-      if (maxLabel) maxLabel.textContent = `max ${formatEuro(max)}`;
+      if (maxLabel) maxLabel.textContent = this.t.max(formatEuro(max));
     }
     this.renderResults();
   }
@@ -246,7 +296,7 @@ export class App {
     const state = this.cur();
     const items = allocations(state);
     this.el("#results").hidden = items.length === 0;
-    this.el("#results-title").textContent = `Freistellungsaufträge ${String(this.store.current)}`;
+    this.el("#results-title").textContent = this.t.resultsTitle(this.store.current);
     this.el("#results-list").replaceChildren(
       ...items.map((inst) => {
         const li = this.doc.createElement("li");
@@ -429,8 +479,14 @@ export class App {
     this.el("#reset").addEventListener("click", () => {
       this.resetAmounts();
     });
+    for (const btn of this.doc.querySelectorAll<HTMLButtonElement>("[data-lang]")) {
+      btn.addEventListener("click", () => {
+        if (isLang(btn.dataset.lang)) this.setLanguage(btn.dataset.lang);
+      });
+    }
     this.el("#version").textContent = `v${APP_VERSION}`;
 
+    this.translate();
     this.render();
   }
 }

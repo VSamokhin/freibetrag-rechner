@@ -75,9 +75,37 @@
         margin: 0 auto;
         padding: 16px 16px calc(32px + env(safe-area-inset-bottom));
       }
+      .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 8px 0 12px;
+      }
       h1 {
         font-size: 1.25rem;
-        margin: 8px 0 12px;
+        margin: 0;
+      }
+      .lang {
+        display: flex;
+        background: var(--track);
+        border-radius: 10px;
+        padding: 3px;
+        flex: none;
+      }
+      .lang button {
+        border: none;
+        background: transparent;
+        color: var(--muted);
+        padding: 6px 10px;
+        font-size: 0.85rem;
+        border-radius: 8px;
+      }
+      .lang button[aria-pressed="true"] {
+        background: var(--card);
+        color: var(--text);
+        font-weight: 600;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
       }
       .years {
         display: flex;
@@ -238,6 +266,7 @@
         padding: 0;
         margin: 0;
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
         gap: 12px;
       }
       .inst {
@@ -374,8 +403,16 @@
       .step:active {
         background: var(--accent-soft);
       }
+      /* The −/+ buttons replace the browser's spinner, which would eat the field's width. */
+      .amount input::-webkit-inner-spin-button,
+      .amount input::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+      }
       .amount input {
-        width: 76px;
+        appearance: textfield;
+        -moz-appearance: textfield;
+        width: 68px;
         text-align: right;
         padding: 6px 10px;
         font-variant-numeric: tabular-nums;
@@ -383,15 +420,33 @@
       .max {
         color: var(--muted);
         font-size: 0.8rem;
+        line-height: 1.2;
         flex: 1;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
         min-width: 0;
       }
       .fill {
         padding: 6px 10px;
         font-size: 0.85rem;
+      }
+      /* Small phones (≤ 359 px): tighten the amount row so the max label keeps room. */
+      @media (max-width: 359px) {
+        .inst {
+          padding: 12px 10px;
+        }
+        .inst-foot,
+        .amount {
+          gap: 4px;
+        }
+        .step {
+          width: 36px;
+        }
+        .amount input {
+          width: 64px;
+          padding: 6px 6px;
+        }
+        .fill {
+          padding: 6px 8px;
+        }
       }
       #empty {
         color: var(--muted);
@@ -411,34 +466,41 @@
   </head>
   <body>
     <main>
-      <h1>Freibetrag-Rechner</h1>
+      <header class="top">
+        <h1>Freibetrag-Rechner</h1>
+        <div class="lang" role="group" aria-label="Language" data-i18n-label="languageLabel">
+          <button type="button" data-lang="en" lang="en" aria-pressed="false">EN</button>
+          <button type="button" data-lang="de" lang="de" aria-pressed="false">DE</button>
+        </div>
+      </header>
 
-      <nav class="years" aria-label="Year">
-        <button id="prev-year" type="button" aria-label="Previous year">‹</button>
+      <nav class="years" aria-label="Year" data-i18n-label="yearLabel">
+        <button id="prev-year" type="button" aria-label="Previous year" data-i18n-label="prevYear">‹</button>
         <div class="year-label"><span id="year"></span><small id="year-saved"></small></div>
-        <button id="next-year" type="button" aria-label="Next year">›</button>
+        <button id="next-year" type="button" aria-label="Next year" data-i18n-label="nextYear">›</button>
       </nav>
 
       <section id="start" hidden>
         <p id="start-text"></p>
         <div class="start-actions">
           <button id="start-from" class="primary" type="button"></button>
-          <button id="start-empty" type="button">Start empty</button>
+          <button id="start-empty" type="button" data-i18n="startEmpty">Start empty</button>
         </div>
       </section>
 
       <div id="workspace">
         <div class="seg" role="radiogroup" aria-label="Sparerpauschbetrag">
           <input type="radio" name="mode" id="m-single" value="single" /><label for="m-single"
-            >Single<small>1.000 €</small></label
+            ><span data-i18n="single">Single</span><small data-i18n="singleSub">1.000 €</small></label
           >
           <input type="radio" name="mode" id="m-joint" value="joint" /><label for="m-joint"
-            >Joint (2 people)<small>2.000 € shared</small></label
+            ><span data-i18n="joint">Joint (2 people)</span
+            ><small data-i18n="jointSub">2.000 € shared</small></label
           >
         </div>
 
         <section id="summary" aria-live="polite">
-          <div class="label">Still available</div>
+          <div class="label" data-i18n="stillAvailable">Still available</div>
           <div id="remaining">–</div>
           <div class="bar"><div id="bar-fill"></div></div>
           <div id="used"></div>
@@ -449,37 +511,70 @@
             id="add-name"
             type="text"
             placeholder="Bank or broker name"
+            data-i18n-placeholder="addPlaceholder"
             maxlength="60"
             autocomplete="off"
             aria-label="New institution name"
+            data-i18n-label="addLabel"
           />
-          <button class="primary" type="submit">Add</button>
+          <button class="primary" type="submit" data-i18n="add">Add</button>
         </form>
 
         <ul id="list"></ul>
         <section id="results" hidden>
           <h2 id="results-title"></h2>
           <ul id="results-list"></ul>
-          <div class="results-total"><span>Total</span><span id="results-total" class="num"></span></div>
+          <div class="results-total">
+            <span data-i18n="total">Total</span><span id="results-total" class="num"></span>
+          </div>
         </section>
-        <p id="empty">Add the banks and brokers you want to send a Freistellungsauftrag to.</p>
+        <p id="empty" data-i18n="empty">
+          Add the banks and brokers you want to send a Freistellungsauftrag to.
+        </p>
 
         <div class="footer">
-          <span>Saved on this device only · <span id="version"></span></span>
-          <button id="reset" type="button">Reset amounts</button>
+          <span
+            ><span data-i18n="savedLocally">Saved on this device only</span> · <span id="version"></span
+          ></span>
+          <button id="reset" type="button" data-i18n="resetAmounts">Reset amounts</button>
         </div>
       </div>
       <div class="footer">
-        <span></span><button id="delete-year" class="danger" type="button">Delete this year</button>
+        <span></span
+        ><button id="delete-year" class="danger" type="button" data-i18n="deleteYear">
+          Delete this year
+        </button>
       </div>
     </main>
     <template id="row-template">
       <li class="inst">
         <div class="inst-head">
-          <input class="name" type="text" aria-label="Institution name" maxlength="60" />
-          <button class="del" type="button" aria-label="Remove institution" title="Remove">✕</button>
+          <input
+            class="name"
+            type="text"
+            aria-label="Institution name"
+            data-i18n-label="institutionName"
+            maxlength="60"
+          />
+          <button
+            class="del"
+            type="button"
+            aria-label="Remove institution"
+            data-i18n-label="removeInstitution"
+            title="Remove"
+            data-i18n-title="remove"
+          >
+            ✕
+          </button>
         </div>
-        <div class="slider" role="slider" tabindex="0" aria-label="Amount" aria-valuemin="0">
+        <div
+          class="slider"
+          role="slider"
+          tabindex="0"
+          aria-label="Amount"
+          data-i18n-label="amount"
+          aria-valuemin="0"
+        >
           <div class="rail">
             <div class="cap"></div>
             <div class="fillbar"></div>
@@ -487,13 +582,27 @@
           <div class="thumb"></div>
         </div>
         <div class="inst-foot">
-          <button class="step" type="button" aria-label="Minus 1 €">−</button>
+          <button class="step" type="button" aria-label="Minus 1 €" data-i18n-label="minusOne">−</button>
           <label class="amount"
-            ><input type="number" inputmode="numeric" min="0" step="1" aria-label="Amount in euros"
+            ><input
+              type="number"
+              inputmode="numeric"
+              min="0"
+              step="1"
+              aria-label="Amount in euros"
+              data-i18n-label="amountInEuros"
           /></label>
-          <button class="step" type="button" aria-label="Plus 1 €">+</button>
+          <button class="step" type="button" aria-label="Plus 1 €" data-i18n-label="plusOne">+</button>
           <span class="max"></span>
-          <button class="fill" type="button" title="Assign all remaining to this institution">+ rest</button>
+          <button
+            class="fill"
+            type="button"
+            title="Assign all remaining to this institution"
+            data-i18n-title="fillRestTitle"
+            data-i18n="fillRest"
+          >
+            + rest
+          </button>
         </div>
       </li>
     </template>
