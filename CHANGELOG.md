@@ -7,6 +7,11 @@ and versions follow `major.minor.build`, where the build part is derived from th
 
 ## [Unreleased]
 
+### Added
+
+- The app is hosted on GitHub Pages at https://vsamokhin.github.io/freibetrag-rechner/ (SOA-25), deployed only
+  from published releases; Release Drafter keeps the next release as a draft.
+
 ## [0.2.0] - 2026-11-09
 
 ### Added
