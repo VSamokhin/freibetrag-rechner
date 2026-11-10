@@ -537,6 +537,34 @@
         flex-wrap: wrap;
         gap: 8px;
       }
+      #backup {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 14px 16px;
+        margin-top: 20px;
+      }
+      #backup h2 {
+        font-size: 1rem;
+        margin: 0 0 4px;
+      }
+      #backup p {
+        margin: 0 0 12px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      #backup #backup-status {
+        margin: 10px 0 0;
+        color: var(--text);
+        overflow-wrap: anywhere;
+      }
+      #backup-status:empty {
+        display: none;
+      }
+      button:disabled {
+        cursor: default;
+        opacity: 0.5;
+      }
       #empty {
         color: var(--muted);
         text-align: center;
@@ -635,6 +663,18 @@
           <button id="reset" type="button" data-i18n="resetAmounts">Reset amounts</button>
         </div>
       </div>
+      <section id="backup" aria-labelledby="backup-title">
+        <h2 id="backup-title" data-i18n="backupTitle">Backup</h2>
+        <p data-i18n="backupText">
+          Save every year to a file, for example in your cloud storage, or restore them from one.
+        </p>
+        <div class="start-actions">
+          <button id="export" type="button" data-i18n="exportBackup">Export to file</button>
+          <button id="import" type="button" data-i18n="importBackup">Import from file</button>
+          <input id="import-file" type="file" accept=".json,application/json" hidden />
+        </div>
+        <p id="backup-status" role="status"></p>
+      </section>
       <div class="footer">
         <span></span
         ><button id="delete-year" class="danger" type="button" data-i18n="deleteYear">

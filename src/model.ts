@@ -117,18 +117,21 @@ function parseJson(raw: string | null): unknown {
   }
 }
 
+const isYearKey = (key: string): boolean => /^\d{4}$/.test(key);
+
+/** Whether `value` is a non-null, non-array object. */
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 /** Validates a v2 store, keeping only well-formed, consistent years. */
 function parseV2(data: unknown): Store | null {
-  if (typeof data !== "object" || data === null) return null;
-  const o = data as Record<string, unknown>;
-  if (o.version !== 2 || !Number.isInteger(o.current) || typeof o.years !== "object" || o.years === null) {
-    return null;
-  }
+  if (!isRecord(data)) return null;
+  if (data.version !== 2 || !Number.isInteger(data.current) || !isRecord(data.years)) return null;
   const years: Record<string, YearState> = {};
-  for (const [key, value] of Object.entries(o.years as Record<string, unknown>)) {
-    if (/^\d{4}$/.test(key) && isYearState(value) && isConsistent(value)) years[key] = normalise(value);
+  for (const [key, value] of Object.entries(data.years)) {
+    if (isYearKey(key) && isYearState(value) && isConsistent(value)) years[key] = normalise(value);
   }
-  return { version: 2, current: o.current as number, years };
+  return { version: 2, current: data.current as number, years };
 }
 
 /**
@@ -249,3 +252,72 @@ export const formatEuro = (value: number): string =>
   );
 
 export const createId = (): string => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+// ---- backup file (SOA-36) ---------------------------------------------------
+
+/** Marks a file as a backup of this app. */
+export const BACKUP_APP = "freibetrag-rechner";
+/**
+ * Version of the backup file format, independent of the app version. Raise it only for a change
+ * that older apps cannot read correctly (a renamed or re-typed field, a new required field, other
+ * meanings); adding optional fields that older apps may ignore keeps it. An app refuses files whose
+ * format is newer than the one it supports, and reads every older one it knows.
+ */
+export const BACKUP_FORMAT = 1;
+/** Largest file accepted for import; real backups are a few kilobytes. */
+export const MAX_BACKUP_BYTES = 1_000_000;
+
+/** Contents of a backup file: every saved year. */
+export interface Backup {
+  app: typeof BACKUP_APP;
+  format: typeof BACKUP_FORMAT;
+  /** Version of the app that wrote the file, for information only. */
+  appVersion: string;
+  /** When the file was written (ISO 8601), for information only. */
+  exportedAt: string;
+  years: Record<string, YearState>;
+}
+
+export type BackupError = "invalid" | "newer";
+
+export type BackupResult = { ok: true; years: Record<string, YearState> } | { ok: false; error: BackupError };
+
+export function createBackup(store: Store, appVersion: string, now: Date): Backup {
+  return {
+    app: BACKUP_APP,
+    format: BACKUP_FORMAT,
+    appVersion,
+    exportedAt: now.toISOString(),
+    years: store.years,
+  };
+}
+
+/** File name for a backup written on `now`, e.g. `freibetrag-rechner-2026-11-10.json`. */
+export function backupFileName(now: Date): string {
+  const pad = (n: number): string => String(n).padStart(2, "0");
+  const date = `${String(now.getFullYear())}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  return `${BACKUP_APP}-${date}.json`;
+}
+
+/**
+ * Reads a backup file. The whole file is refused (nothing is imported) if it is not a backup of
+ * this app, if any year in it is malformed or over its limit, or if it holds no year at all;
+ * `newer` means it was written in a format this app does not know yet.
+ */
+export function parseBackup(raw: string): BackupResult {
+  const data = parseJson(raw);
+  if (!isRecord(data) || data.app !== BACKUP_APP || !Number.isInteger(data.format)) {
+    return { ok: false, error: "invalid" };
+  }
+  const format = data.format as number;
+  if (format > BACKUP_FORMAT) return { ok: false, error: "newer" };
+  if (format < 1 || !isRecord(data.years)) return { ok: false, error: "invalid" };
+  const entries = Object.entries(data.years);
+  const years: Record<string, YearState> = {};
+  for (const [key, value] of entries) {
+    if (!isYearKey(key) || !isYearState(value) || !isConsistent(value))
+      return { ok: false, error: "invalid" };
+    years[key] = normalise(value);
+  }
+  return entries.length > 0 ? { ok: true, years } : { ok: false, error: "invalid" };
+}

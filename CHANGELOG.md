@@ -7,6 +7,17 @@ and versions follow `major.minor.build`, where the build part is derived from th
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-10
+
+### Added
+
+- Backup (SOA-36): **Export to file** saves every year as a JSON file, and **Import from file** restores one,
+  replacing the years saved on the device after a confirmation. The file carries its own format version,
+  independent of the app version: an app refuses a file in a newer format and asks to update instead. A damaged
+  file, a file from another app or a year over its limit is refused as a whole and changes nothing.
+
+## [0.3.3] - 2026-11-10
+
 ### Changed
 
 - On each institution card the slider now sits below the amount field and the −/+ buttons, so the amount stays
@@ -70,7 +81,9 @@ and versions follow `major.minor.build`, where the build part is derived from th
 - Offline support and Android installation as a Progressive Web App.
 - App version shown in the footer.
 
-[Unreleased]: https://github.com/VSamokhin/freibetrag-rechner/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/VSamokhin/freibetrag-rechner/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/VSamokhin/freibetrag-rechner/compare/v0.3.3...v0.4.0
+[0.3.3]: https://github.com/VSamokhin/freibetrag-rechner/compare/v0.3.0...v0.3.3
 [0.3.0]: https://github.com/VSamokhin/freibetrag-rechner/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/VSamokhin/freibetrag-rechner/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/VSamokhin/freibetrag-rechner/releases/tag/v0.1.0

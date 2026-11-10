@@ -1,19 +1,24 @@
 import { describe, expect, it } from "vitest";
 import {
+  BACKUP_APP,
+  BACKUP_FORMAT,
   LEGACY_KEY,
   STORAGE_KEY,
   type YearState,
   addInstitution,
   allocations,
   allocationsByHolder,
+  backupFileName,
   cleanName,
   copyYear,
+  createBackup,
   createId,
   formatEuro,
   isYearState,
   maxFor,
   needsScaling,
   newStore,
+  parseBackup,
   parseStore,
   previousSave,
   remainingOf,
@@ -267,5 +272,70 @@ describe("helpers", () => {
 
   it("creates unique ids", () => {
     expect(createId()).not.toBe(createId());
+  });
+});
+
+describe("backup (SOA-36)", () => {
+  const now = new Date(2026, 10, 3, 9, 5);
+  const store = {
+    version: 2 as const,
+    current: 2026,
+    years: { 2025: year("single", 300), 2026: year("joint", 1500) },
+  };
+  const file = (data: Record<string, unknown>): string =>
+    JSON.stringify({ app: BACKUP_APP, format: BACKUP_FORMAT, years: store.years, ...data });
+
+  it("writes every year with its own format version and the app version", () => {
+    const backup = createBackup(store, "0.4.1", now);
+    expect(backup).toEqual({
+      app: "freibetrag-rechner",
+      format: 1,
+      appVersion: "0.4.1",
+      exportedAt: now.toISOString(),
+      years: store.years,
+    });
+    expect(backupFileName(now)).toBe("freibetrag-rechner-2026-11-03.json");
+  });
+
+  it("reads back what it writes", () => {
+    expect(parseBackup(JSON.stringify(createBackup(store, "0.4.1", now)))).toEqual({
+      ok: true,
+      years: store.years,
+    });
+  });
+
+  it("refuses files written in a newer format", () => {
+    expect(parseBackup(file({ format: BACKUP_FORMAT + 1 }))).toEqual({ ok: false, error: "newer" });
+  });
+
+  it.each([
+    ["not JSON", "{"],
+    ["another app", file({ app: "something-else" })],
+    ["no format", file({ format: undefined })],
+    ["a fractional format", file({ format: 1.5 })],
+    ["format 0", file({ format: 0 })],
+    ["years as a list", file({ years: [year("single")] })],
+    ["no years", file({ years: {} })],
+    ["a bad year key", file({ years: { "26": year("single") } })],
+    ["a malformed year", file({ years: { 2026: { mode: "both", institutions: [] } } })],
+    ["an over-allocated year", file({ years: { 2025: year("single"), 2026: year("single", 800, 300) } })],
+    ["a JSON array", "[]"],
+  ])("refuses the whole file with %s", (_, raw) => {
+    expect(parseBackup(raw)).toEqual({ ok: false, error: "invalid" });
+  });
+
+  it("fills in holder data and ignores unknown extra fields", () => {
+    const old = { mode: "joint", institutions: [{ id: "a", name: "ING", amount: 5 }], extra: true };
+    const result = parseBackup(file({ years: { 2024: old }, comment: "kept by a newer app" }));
+    expect(result).toEqual({
+      ok: true,
+      years: {
+        2024: {
+          mode: "joint",
+          institutions: [{ id: "a", name: "ING", amount: 5, holder: 0 }],
+          holders: ["Person 1", "Person 2"],
+        },
+      },
+    });
   });
 });
