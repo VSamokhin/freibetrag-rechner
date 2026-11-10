@@ -663,3 +663,42 @@ describe("keyTarget", () => {
     expect(keyTarget(key, 50, 300)).toBe(expected);
   });
 });
+
+describe("persistent storage (SOA-38)", () => {
+  function mountWith(storageManager?: {
+    persist?: () => Promise<boolean>;
+    persisted?: () => Promise<boolean>;
+  }): App {
+    document.body.innerHTML = body;
+    const created = new App(document, { storage, year: 2026, storageManager });
+    created.mount();
+    return created;
+  }
+
+  it("keeps the hint hidden when the browser grants it", async () => {
+    const created = mountWith({
+      persisted: () => Promise.resolve(false),
+      persist: () => Promise.resolve(true),
+    });
+    expect(await created.keepData()).toBe("granted");
+    expect($("#persist-hint").hidden).toBe(true);
+  });
+
+  it("suggests a backup when the browser refuses", async () => {
+    const created = mountWith({
+      persisted: () => Promise.resolve(false),
+      persist: () => Promise.resolve(false),
+    });
+    expect(await created.keepData()).toBe("refused");
+    expect($("#persist-hint").hidden).toBe(false);
+    expect($("#persist-hint").textContent).toContain("backup");
+    $<HTMLButtonElement>("[data-lang=de]").click();
+    expect($("#persist-hint").textContent).toContain("Sicherung");
+  });
+
+  it("changes nothing without the Storage API", async () => {
+    const created = mountWith();
+    expect(await created.keepData()).toBe("unsupported");
+    expect($("#persist-hint").hidden).toBe(true);
+  });
+});

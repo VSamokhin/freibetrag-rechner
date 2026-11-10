@@ -36,7 +36,9 @@ you send each of them a **Freistellungsauftrag**.
 3. The app opens fullscreen and works without an internet connection.
 
 Your data lives only on that device. Clearing the browser's site data or uninstalling the app (if you choose to
-remove its data) deletes it, so keep a backup: **Backup → Export to file** saves every year to a file, and
+remove its data) deletes it. The app asks the browser for persistent storage, so the data is not cleared just
+because the device runs low on space; if the browser refuses, the Backup section says so. Either way, keep a
+backup: **Backup → Export to file** saves every year to a file, and
 **Import from file** restores it.
 
 ### Backup file format

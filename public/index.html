@@ -558,6 +558,9 @@
         color: var(--text);
         overflow-wrap: anywhere;
       }
+      #backup #persist-hint {
+        margin: 10px 0 0;
+      }
       #backup-status:empty {
         display: none;
       }
@@ -674,6 +677,9 @@
           <input id="import-file" type="file" accept=".json,application/json" hidden />
         </div>
         <p id="backup-status" role="status"></p>
+        <p id="persist-hint" data-i18n="persistHint" hidden>
+          This browser may delete saved data when the device runs low on space. Export a backup now and then.
+        </p>
       </section>
       <div class="footer">
         <span></span
