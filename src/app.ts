@@ -9,14 +9,17 @@ import {
   type Store,
   type YearState,
   LEGACY_KEY,
+  MAX_BACKUP_BYTES,
   STORAGE_KEY,
   HOLDERS,
   TOTALS,
   addInstitution,
   allocations,
   allocationsByHolder,
+  backupFileName,
   cleanName,
   copyYear,
+  createBackup,
   createId,
   emptyYear,
   formatEuro,
@@ -24,6 +27,7 @@ import {
   isMode,
   maxFor,
   needsScaling,
+  parseBackup,
   parseStore,
   previousSave,
   remainingOf,
@@ -50,6 +54,8 @@ export interface AppOptions {
   year?: number;
   /** Preferred languages, e.g. `navigator.languages`; used until the user picks one. */
   languages?: readonly string[];
+  /** Clock for backup file names and timestamps, injectable for tests. */
+  now?: () => Date;
 }
 
 /** `data-i18n-<name>` attribute → the attribute it fills with translated text. */
@@ -64,6 +70,7 @@ export class App {
   private readonly storage: Pick<Storage, "getItem" | "setItem"> | undefined;
   private lang: Lang;
   private t: Messages;
+  private readonly clock: (() => Date) | undefined;
   /** The open confirmation question, if any. */
   private pending: { onYes: () => void; onNo: () => void; returnFocus: HTMLElement | null } | null = null;
 
@@ -72,6 +79,7 @@ export class App {
     options: AppOptions = {},
   ) {
     this.storage = options.storage;
+    this.clock = options.now;
     const year = options.year ?? new Date().getFullYear();
     let raw: string | null = null;
     let legacy: string | null = null;
@@ -247,6 +255,69 @@ export class App {
     });
   }
 
+  /** Shows the outcome of an export or import next to the backup buttons. */
+  private backupStatus(message: string): void {
+    this.el("#backup-status").textContent = message;
+  }
+
+  /** Downloads every saved year as a JSON backup file (SOA-36). */
+  exportBackup(): void {
+    const now = this.clock?.() ?? new Date();
+    const name = backupFileName(now);
+    const json = `${JSON.stringify(createBackup(this.store, APP_VERSION, now), null, 2)}\n`;
+    const win = this.doc.defaultView;
+    if (!win) return;
+    const url = win.URL.createObjectURL(new win.Blob([json], { type: "application/json" }));
+    const link = this.doc.createElement("a");
+    link.href = url;
+    link.download = name;
+    link.hidden = true;
+    this.doc.body.append(link);
+    link.click();
+    link.remove();
+    win.setTimeout(() => {
+      win.URL.revokeObjectURL(url);
+    }, 0);
+    this.backupStatus(this.t.exported(name));
+  }
+
+  /**
+   * Restores the years of a backup file, replacing every saved year after confirmation.
+   * A file that cannot be read completely changes nothing.
+   */
+  importBackup(text: string): void {
+    const result = parseBackup(text);
+    if (!result.ok) {
+      this.backupStatus(result.error === "newer" ? this.t.importNewer : this.t.importInvalid);
+      return;
+    }
+    const count = Object.keys(result.years).length;
+    const apply = (): void => {
+      this.store.years = result.years;
+      this.save();
+      this.render();
+      this.backupStatus(this.t.imported(count));
+    };
+    if (Object.keys(this.store.years).length === 0) apply();
+    else this.ask(this.t.confirmImport(count), apply);
+  }
+
+  /** Reads a file picked for import; returns once it has been read (for tests). */
+  async importFile(file: File): Promise<void> {
+    if (file.size > MAX_BACKUP_BYTES) {
+      this.backupStatus(this.t.importTooLarge);
+      return;
+    }
+    let text: string;
+    try {
+      text = await file.text();
+    } catch {
+      this.backupStatus(this.t.importInvalid);
+      return;
+    }
+    this.importBackup(text);
+  }
+
   private change(inst: Institution, value: number): void {
     setAmount(this.cur(), inst, value);
     this.updateSummary();
@@ -258,6 +329,7 @@ export class App {
   translate(): void {
     const text = this.t.text;
     this.doc.documentElement.lang = this.lang;
+    this.backupStatus(""); // a message in the previous language would be confusing
     const roots: ParentNode[] = [this.doc];
     for (const template of this.doc.querySelectorAll("template")) roots.push(template.content);
     for (const root of roots) {
@@ -288,6 +360,7 @@ export class App {
     this.el("#delete-year").hidden = !state;
     this.el("#start").hidden = !!state;
     this.el("#results").hidden = true;
+    this.el("#export", HTMLButtonElement).disabled = Object.keys(this.store.years).length === 0;
 
     if (!state) {
       const prev = previousSave(this.store, year);
@@ -629,6 +702,18 @@ export class App {
     });
     this.el("#reset").addEventListener("click", () => {
       this.resetAmounts();
+    });
+    this.el("#export").addEventListener("click", () => {
+      this.exportBackup();
+    });
+    const file = this.el("#import-file", HTMLInputElement);
+    this.el("#import").addEventListener("click", () => {
+      file.click();
+    });
+    file.addEventListener("change", () => {
+      const picked = file.files?.[0];
+      file.value = ""; // picking the same file again must fire change again
+      if (picked) void this.importFile(picked);
     });
     const dialog = this.el("#confirm");
     this.el("#confirm-ok").addEventListener("click", () => {

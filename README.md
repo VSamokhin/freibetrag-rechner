@@ -21,6 +21,8 @@ you send each of them a **Freistellungsauftrag**.
   never be exceeded.
 - **Results list:** shows every Freistellungsauftrag with an amount above 0 €, plus the total.
 - **One save per year:** start a new year as a copy of the most recent earlier year, or start with an empty list.
+- **Backup:** export every year to a JSON file (for example into your cloud storage) and import it again, on the
+  same or another device. Importing replaces the years saved on the device, after a confirmation.
 - **English and German:** follows the browser language; switch any time with EN/DE in the header.
 - **Private and offline:** no account, no server and no tracking. Data stays in your browser's local storage,
   and the app can be installed on Android as a Progressive Web App (PWA).
@@ -34,7 +36,34 @@ you send each of them a **Freistellungsauftrag**.
 3. The app opens fullscreen and works without an internet connection.
 
 Your data lives only on that device. Clearing the browser's site data or uninstalling the app (if you choose to
-remove its data) deletes it.
+remove its data) deletes it, so keep a backup: **Backup → Export to file** saves every year to a file, and
+**Import from file** restores it.
+
+### Backup file format
+
+A backup is a JSON file named `freibetrag-rechner-<date>.json`:
+
+```json
+{
+  "app": "freibetrag-rechner",
+  "format": 1,
+  "appVersion": "0.4.0",
+  "exportedAt": "2026-11-10T18:00:00.000Z",
+  "years": {
+    "2026": {
+      "mode": "joint",
+      "holders": ["Person 1", "Person 2"],
+      "institutions": [{ "id": "m3k1x9a2b", "name": "ING", "amount": 801, "holder": 0 }]
+    }
+  }
+}
+```
+
+- `format` is the version of the file format, independent of the app version. It is raised only for a change that
+  older apps cannot read correctly; new optional fields keep it. An app reads every format up to its own and refuses
+  a newer one, asking to update the app. `appVersion` and `exportedAt` are for information only.
+- An import is all or nothing: a file from another app, a damaged file or a year over its limit changes nothing.
+- The file is not encrypted; it holds the names of your banks and the amounts.
 
 ## Development
 

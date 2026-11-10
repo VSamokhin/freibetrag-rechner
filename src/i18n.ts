@@ -59,6 +59,10 @@ export interface StaticTexts {
   holderLabel: string;
   cancel: string;
   ok: string;
+  backupTitle: string;
+  backupText: string;
+  exportBackup: string;
+  importBackup: string;
 }
 
 export type StaticKey = keyof StaticTexts;
@@ -79,7 +83,16 @@ export interface Messages {
   max: (amount: string) => string;
   resultsTitle: (year: number) => string;
   holderName: (n: number) => string;
+  confirmImport: (years: number) => string;
+  imported: (years: number) => string;
+  importInvalid: string;
+  importNewer: string;
+  importTooLarge: string;
+  exported: (file: string) => string;
 }
+
+const yearsEn = (n: number): string => (n === 1 ? "1 year" : `${String(n)} years`);
+const yearsDe = (n: number): string => (n === 1 ? "1 Jahr" : `${String(n)} Jahre`);
 
 const en: Messages = {
   text: {
@@ -114,6 +127,10 @@ const en: Messages = {
     holderLabel: "Account holder",
     cancel: "Cancel",
     ok: "OK",
+    backupTitle: "Backup",
+    backupText: "Save every year to a file, for example in your cloud storage, or restore them from one.",
+    exportBackup: "Export to file",
+    importBackup: "Import from file",
   },
   saved: "saved",
   notSaved: "no save yet",
@@ -130,6 +147,14 @@ const en: Messages = {
   max: (amount) => `max ${amount}`,
   resultsTitle: (year) => `Freistellungsaufträge ${String(year)}`,
   holderName: (n) => `Name of account holder ${String(n)}`,
+  confirmImport: (years) =>
+    `Replace all saved years on this device with the ${yearsEn(years)} from the backup? This cannot be undone.`,
+  imported: (years) => `Restored ${yearsEn(years)} from the backup.`,
+  importInvalid: "This file is not a Freibetrag-Rechner backup, or it is damaged. Nothing was changed.",
+  importNewer:
+    "This backup was made by a newer version of the app. Please update the app, then import it again. Nothing was changed.",
+  importTooLarge: "This file is too large to be a Freibetrag-Rechner backup. Nothing was changed.",
+  exported: (file) => `Created the backup ${file}; look for it in your downloads.`,
 };
 
 const de: Messages = {
@@ -165,6 +190,11 @@ const de: Messages = {
     holderLabel: "Kontoinhaber",
     cancel: "Abbrechen",
     ok: "OK",
+    backupTitle: "Sicherung",
+    backupText:
+      "Alle Jahre in einer Datei sichern, etwa in deinem Cloud-Speicher, oder aus einer Datei wiederherstellen.",
+    exportBackup: "In Datei exportieren",
+    importBackup: "Aus Datei importieren",
   },
   saved: "gespeichert",
   notSaved: "noch nicht gespeichert",
@@ -181,6 +211,16 @@ const de: Messages = {
   max: (amount) => `max. ${amount}`,
   resultsTitle: (year) => `Freistellungsaufträge ${String(year)}`,
   holderName: (n) => `Name von Kontoinhaber ${String(n)}`,
+  confirmImport: (years) =>
+    `Alle auf diesem Gerät gespeicherten Jahre durch die Sicherung (${yearsDe(years)}) ersetzen? Das lässt sich nicht rückgängig machen.`,
+  imported: (years) => `${yearsDe(years)} aus der Sicherung wiederhergestellt.`,
+  importInvalid:
+    "Diese Datei ist keine Sicherung des Freibetrag-Rechners oder sie ist beschädigt. Es wurde nichts geändert.",
+  importNewer:
+    "Diese Sicherung stammt von einer neueren Version der App. Bitte aktualisiere die App und importiere sie dann erneut. Es wurde nichts geändert.",
+  importTooLarge:
+    "Diese Datei ist zu groß für eine Sicherung des Freibetrag-Rechners. Es wurde nichts geändert.",
+  exported: (file) => `Sicherung ${file} erstellt; du findest sie bei deinen Downloads.`,
 };
 
 const MESSAGES: Readonly<Record<Lang, Messages>> = { en, de };

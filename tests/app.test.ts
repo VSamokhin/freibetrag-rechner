@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { App, keyTarget } from "../src/app";
 import { LANG_KEY } from "../src/i18n";
-import { STORAGE_KEY, type Store } from "../src/model";
+import { BACKUP_APP, MAX_BACKUP_BYTES, STORAGE_KEY, type Store } from "../src/model";
 
 const html = readFileSync(resolve(__dirname, "../public/index.html"), "utf8");
 const body = /<body>([\s\S]*)<\/body>/.exec(html)?.[1] ?? "";
@@ -315,6 +315,121 @@ describe("app", () => {
     expect(() => {
       new App(document, { storage, year: 2026 }).mount();
     }).toThrow(/Missing element/);
+  });
+});
+
+describe("backup (SOA-36)", () => {
+  const status = (): string => $("#backup-status").textContent;
+
+  /** Stubs the download so the exported file can be read back. */
+  function captureDownload(): { name: () => string; blob: () => Blob } {
+    let blob: Blob | undefined;
+    let name = "";
+    vi.spyOn(URL, "createObjectURL").mockImplementation((b) => {
+      blob = b as Blob;
+      return "blob:backup";
+    });
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
+      expect(this.href).toBe("blob:backup");
+      name = this.download;
+    });
+    return { name: () => name, blob: () => blob! };
+  }
+
+  function pick(file: File): void {
+    const input = $<HTMLInputElement>("#import-file");
+    Object.defineProperty(input, "files", { value: [file], configurable: true });
+    input.dispatchEvent(new Event("change"));
+  }
+
+  /** Lets the file input's asynchronous read finish. */
+  const settle = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
+
+  it("exports every year to a file and imports it back, replacing the saved years", async () => {
+    document.body.innerHTML = body;
+    app = new App(document, { storage, year: 2026, now: () => new Date(2026, 10, 10) });
+    app.mount();
+    addBank("ING");
+    typeAmount(0, "400");
+    $("#next-year").click();
+    $("#start-from").click();
+    const download = captureDownload();
+    $("#export").click();
+    expect(download.name()).toBe("freibetrag-rechner-2026-11-10.json");
+    expect(status()).toContain("freibetrag-rechner-2026-11-10.json");
+    expect($$("a")).toHaveLength(0);
+    const text = await download.blob().text();
+    expect(JSON.parse(text)).toMatchObject({ app: BACKUP_APP, format: 1, years: { 2026: {}, 2027: {} } });
+
+    typeAmount(0, "900");
+    $("#prev-year").click();
+    $("#delete-year").click();
+    answer(true);
+    pick(new File([text], "backup.json", { type: "application/json" }));
+    await settle();
+    expect($("#confirm-text").textContent).toBe(
+      "Replace all saved years on this device with the 2 years from the backup? This cannot be undone.",
+    );
+    answer(true);
+    expect(status()).toBe("Restored 2 years from the backup.");
+    expect(amounts()).toEqual(["400"]);
+    expect(Object.keys(saved().years)).toEqual(["2026", "2027"]);
+    expect($<HTMLInputElement>("#import-file").value).toBe("");
+  });
+
+  it("keeps everything when the import is cancelled", () => {
+    addBank("ING");
+    typeAmount(0, "250");
+    const backup = { app: BACKUP_APP, format: 1, years: { 2020: { mode: "single", institutions: [] } } };
+    app.importBackup(JSON.stringify(backup));
+    expect($("#confirm-text").textContent).toContain("with the 1 year from the backup");
+    answer(false);
+    expect(amounts()).toEqual(["250"]);
+    expect(status()).toBe("");
+  });
+
+  it("imports without asking when nothing is saved, and disables export then", () => {
+    $("#delete-year").click();
+    answer(true);
+    expect($<HTMLButtonElement>("#export").disabled).toBe(true);
+    const backup = { app: BACKUP_APP, format: 1, years: { 2026: { mode: "joint", institutions: [] } } };
+    app.importBackup(JSON.stringify(backup));
+    expect($("#confirm").hidden).toBe(true);
+    expect($<HTMLInputElement>("#m-joint").checked).toBe(true);
+    expect($<HTMLButtonElement>("#export").disabled).toBe(false);
+  });
+
+  it("explains why a file is refused, and changes nothing", async () => {
+    addBank("ING");
+    app.importBackup("not a backup");
+    expect(status()).toBe(
+      "This file is not a Freibetrag-Rechner backup, or it is damaged. Nothing was changed.",
+    );
+    app.importBackup(JSON.stringify({ app: BACKUP_APP, format: 99, years: {} }));
+    expect(status()).toMatch(/newer version of the app/);
+    await app.importFile(new File([new Uint8Array(MAX_BACKUP_BYTES + 1)], "big.json"));
+    expect(status()).toMatch(/too large/);
+    const unreadable = new File(["{}"], "broken.json");
+    vi.spyOn(unreadable, "text").mockRejectedValue(new Error("gone"));
+    await app.importFile(unreadable);
+    expect(status()).toMatch(/not a Freibetrag-Rechner backup/);
+    expect($$(".inst")).toHaveLength(1);
+    expect($("#confirm").hidden).toBe(true);
+  });
+
+  it("opens the file picker, ignores an empty pick, and speaks German", () => {
+    const click = vi.spyOn(HTMLInputElement.prototype, "click").mockImplementation(() => undefined);
+    $("#import").click();
+    expect(click).toHaveBeenCalledTimes(1);
+    $<HTMLInputElement>("#import-file").dispatchEvent(new Event("change"));
+    expect(status()).toBe("");
+    app.importBackup("{}");
+    $<HTMLButtonElement>("[data-lang=de]").click();
+    expect(status()).toBe("");
+    expect($("#backup-title").textContent).toBe("Sicherung");
+    app.importBackup("{}");
+    expect(status()).toMatch(/keine Sicherung des Freibetrag-Rechners/);
   });
 });
 

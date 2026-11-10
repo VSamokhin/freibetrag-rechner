@@ -40,6 +40,12 @@ describe("messages", () => {
     m.usedOf("300 €", "1.000 €"),
     m.max("700 €"),
     m.resultsTitle(2026),
+    m.confirmImport(2),
+    m.imported(1),
+    m.importInvalid,
+    m.importNewer,
+    m.importTooLarge,
+    m.exported("freibetrag-rechner-2026-11-10.json"),
   ];
 
   it("has the same, non-empty texts in every language", () => {
@@ -61,6 +67,10 @@ describe("messages", () => {
     expect(de.confirmRemove("ING", "300 €")).toBe("„ING“ entfernen und 300 € freigeben?");
     expect(de.usedOf("300 €", "1.000 €")).toBe("300 € von 1.000 € verteilt");
     expect(de.max("700 €")).toBe("max. 700 €");
+    expect(de.confirmImport(1)).toBe(
+      "Alle auf diesem Gerät gespeicherten Jahre durch die Sicherung (1 Jahr) ersetzen? Das lässt sich nicht rückgängig machen.",
+    );
+    expect(de.imported(3)).toBe("3 Jahre aus der Sicherung wiederhergestellt.");
     expect(sample(messagesFor("en"))).not.toEqual(sample(de));
   });
 });
