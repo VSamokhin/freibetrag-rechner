@@ -111,15 +111,25 @@ Notable changes are listed per minor version in [CHANGELOG.md](CHANGELOG.md).
 
 ## Releases
 
-The hosted app on GitHub Pages is deployed **only from published releases**:
+Commits on `main` only update a draft; a deliverable is built **only for a published release**:
 
-- [Release Drafter](.github/workflows/release-drafter.yml) keeps a draft release named after the current version
-  of `main` (`v0.2.3`), with the merged pull requests as notes, grouped by their branch prefix: `feature/`,
-  `bugfix/` and `chore/` pull requests are labelled automatically.
-- Publishing that draft creates the tag, and [Deploy to GitHub Pages](.github/workflows/pages.yml) builds the tag
-  after the full `npm run verify`, checks that it builds the release's version, and deploys it.
+- [Release Drafter](.github/workflows/release-drafter.yml) runs on every push to `main` and keeps one draft release
+  named after the current version of `main` (`v0.3.2`), with the merged pull requests as notes. Pull requests are
+  labelled for the notes from their branch prefix (`feature/`, `bugfix/`, `chore/`) or their Conventional Commits
+  title (`feat:`, `fix:`, `ci:`, `build:`, `chore:`, `docs:`, ...).
+- Publishing that draft is the approval: it creates the tag, and [Deploy to GitHub Pages](.github/workflows/pages.yml)
+  builds the tag after the full `npm run verify`, checks that it builds the release's version, attaches the built app
+  to the release (`freibetrag-rechner-v<version>.zip`) and deploys it to
+  https://vsamokhin.github.io/freibetrag-rechner/.
 - **Run workflow** on that workflow redeploys the latest release, or a tag you name.
-- Pushes to `main` never change the hosted app by themselves.
+- CI on pull requests and on `main` runs the same gates, including the build, but keeps no build artifact, and pushes
+  to `main` never change the hosted app.
+
+One-time repository settings for the deployment:
+
+- **Settings → Pages → Source:** GitHub Actions.
+- **Settings → Environments → github-pages → Deployment branches and tags:** add the tag rule `v*`. By default the
+  environment only accepts the default branch, and a release deploys from its tag.
 
 ## License
 

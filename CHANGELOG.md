@@ -11,6 +11,9 @@ and versions follow `major.minor.build`, where the build part is derived from th
 
 - On each institution card the slider now sits below the amount field and the −/+ buttons, so the amount stays
   visible while a finger drags the slider (SOA-35).
+- Releases (SOA-25): the built app is made only for a published release, attached to it as
+  `freibetrag-rechner-v<version>.zip` and deployed to GitHub Pages; CI no longer keeps a build of every commit.
+  Release notes also sort pull requests by their Conventional Commits title (`feat:`, `fix:`, `ci:`, ...).
 
 ### Fixed
 
