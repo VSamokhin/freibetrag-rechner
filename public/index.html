@@ -424,10 +424,12 @@
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
       }
+      /* The amount controls sit above the slider so a finger on the slider does not hide the amount (SOA-35). */
       .inst-foot {
         display: flex;
         align-items: center;
         gap: 6px;
+        margin-top: 6px;
       }
       .inst-foot .max {
         margin-left: 4px;
@@ -671,20 +673,6 @@
             ✕
           </button>
         </div>
-        <div
-          class="slider"
-          role="slider"
-          tabindex="0"
-          aria-label="Amount"
-          data-i18n-label="amount"
-          aria-valuemin="0"
-        >
-          <div class="rail">
-            <div class="cap"></div>
-            <div class="fillbar"></div>
-          </div>
-          <div class="thumb"></div>
-        </div>
         <div class="inst-foot">
           <button class="step" type="button" aria-label="Minus 1 €" data-i18n-label="minusOne">−</button>
           <label class="amount"
@@ -707,6 +695,20 @@
           >
             + rest
           </button>
+        </div>
+        <div
+          class="slider"
+          role="slider"
+          tabindex="0"
+          aria-label="Amount"
+          data-i18n-label="amount"
+          aria-valuemin="0"
+        >
+          <div class="rail">
+            <div class="cap"></div>
+            <div class="fillbar"></div>
+          </div>
+          <div class="thumb"></div>
         </div>
       </li>
     </template>

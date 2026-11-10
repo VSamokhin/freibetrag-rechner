@@ -83,6 +83,12 @@ describe("app", () => {
     expect(saved().years["2026"]!.institutions.map((i) => i.amount)).toEqual([700, 300]);
   });
 
+  it("puts the slider below the amount controls, so a finger on it does not hide the amount", () => {
+    addBank("ING");
+    const row = $$(".inst")[0]!;
+    expect([...row.children].map((c) => c.className)).toEqual(["inst-head", "inst-foot", "slider"]);
+  });
+
   it("assigns the rest with the + rest button", () => {
     addBank("ING");
     addBank("DKB");
