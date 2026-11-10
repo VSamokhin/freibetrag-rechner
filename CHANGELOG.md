@@ -7,6 +7,11 @@ and versions follow `major.minor.build`, where the build part is derived from th
 
 ## [Unreleased]
 
+### Fixed
+
+- A long name without spaces (institution or account holder) now wraps in the results list and in the delete
+  confirmation instead of running past the right edge of the app (SOA-34).
+
 ## [0.3.0] - 2026-11-09
 
 ### Added
