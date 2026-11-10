@@ -154,7 +154,8 @@ const en: Messages = {
   importNewer:
     "This backup was made by a newer version of the app. Please update the app, then import it again. Nothing was changed.",
   importTooLarge: "This file is too large to be a Freibetrag-Rechner backup. Nothing was changed.",
-  exported: (file) => `Created the backup ${file}; look for it in your downloads.`,
+  exported: (file) =>
+    `Your browser should now save ${file}, usually in Downloads. If it does not appear there, the browser or the page around the app blocked the download.`,
 };
 
 const de: Messages = {
@@ -220,7 +221,8 @@ const de: Messages = {
     "Diese Sicherung stammt von einer neueren Version der App. Bitte aktualisiere die App und importiere sie dann erneut. Es wurde nichts geändert.",
   importTooLarge:
     "Diese Datei ist zu groß für eine Sicherung des Freibetrag-Rechners. Es wurde nichts geändert.",
-  exported: (file) => `Sicherung ${file} erstellt; du findest sie bei deinen Downloads.`,
+  exported: (file) =>
+    `Dein Browser sollte jetzt ${file} speichern, meist unter Downloads. Fehlt die Datei dort, hat der Browser oder die Seite um die App den Download blockiert.`,
 };
 
 const MESSAGES: Readonly<Record<Lang, Messages>> = { en, de };
