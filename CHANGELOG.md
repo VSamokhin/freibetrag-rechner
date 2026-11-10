@@ -7,6 +7,11 @@ and versions follow `major.minor.build`, where the build part is derived from th
 
 ## [Unreleased]
 
+### Changed
+
+- On each institution card the slider now sits below the amount field and the −/+ buttons, so the amount stays
+  visible while a finger drags the slider (SOA-35).
+
 ### Fixed
 
 - A long name without spaces (institution or account holder) now wraps in the results list and in the delete
