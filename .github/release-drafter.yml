@@ -11,16 +11,25 @@ categories:
     labels: [fix]
   - title: Maintenance
     labels: [chore, dependencies]
+# Pull requests are labelled from their branch prefix or from their Conventional Commits title
+# (feat:, fix:, ci:, build:, chore:, docs:, ...), so branches such as claude/... or dependabot/...
+# are categorised too.
 autolabeler:
   - label: feature
     branch:
       - '/feature\/.+/'
+    title:
+      - '/^feat(\(.+\))?!?:/i'
   - label: fix
     branch:
       - '/bugfix\/.+/'
+    title:
+      - '/^fix(\(.+\))?!?:/i'
   - label: chore
     branch:
       - '/chore\/.+/'
+    title:
+      - '/^(build|chore|ci|docs|perf|refactor|style|test)(\(.+\))?!?:/i'
 template: |
   ## Changes
 

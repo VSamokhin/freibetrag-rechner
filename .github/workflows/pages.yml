@@ -1,8 +1,10 @@
 name: Deploy to GitHub Pages
 
-# Publishes the app at https://vsamokhin.github.io/freibetrag-rechner/ (SOA-25) only from
-# published releases: publish the draft that Release Drafter keeps, and this builds its tag after
-# the full quality gates. "Run workflow" redeploys the latest release (or a chosen tag).
+# The only workflow that builds a deliverable (SOA-25). Release Drafter keeps a draft release for
+# every commit on main; publishing that draft approves the release, and this builds its tag after the
+# full quality gates, attaches the built app to the release as a zip and publishes it at
+# https://vsamokhin.github.io/freibetrag-rechner/. "Run workflow" redeploys the latest release
+# (or a chosen tag).
 on:
   release:
     types: [published]
@@ -25,6 +27,9 @@ jobs:
     name: Build release
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      # Attaches the built app to the release.
+      contents: write
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
     steps:
@@ -54,6 +59,13 @@ jobs:
         run: |
           version=$(node scripts/version.mjs)
           [ "v$version" = "$TAG" ] || { echo "::error::Tag $TAG, but the commit builds v$version"; exit 1; }
+      - name: Attach the built app to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          (cd dist && zip -qr "../freibetrag-rechner-$TAG.zip" .)
+          gh release upload "$TAG" "freibetrag-rechner-$TAG.zip" --clobber --repo "$GITHUB_REPOSITORY"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist/
