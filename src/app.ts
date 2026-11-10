@@ -39,6 +39,7 @@ import {
   usedOf,
 } from "./model";
 import { type Lang, type Messages, LANG_KEY, detectLang, isLang, isStaticKey, messagesFor } from "./i18n";
+import { type PersistManager, type Persistence, requestPersistence } from "./persist";
 import { APP_VERSION } from "./version";
 
 /** Thumb diameter in px; must match `.slider .thumb` in index.html. */
@@ -56,6 +57,8 @@ export interface AppOptions {
   languages?: readonly string[];
   /** Clock for backup file names and timestamps, injectable for tests. */
   now?: () => Date;
+  /** `navigator.storage`, if the browser has it; used to ask for persistent storage. */
+  storageManager?: PersistManager;
 }
 
 /** `data-i18n-<name>` attribute → the attribute it fills with translated text. */
@@ -71,6 +74,7 @@ export class App {
   private lang: Lang;
   private t: Messages;
   private readonly clock: (() => Date) | undefined;
+  private readonly storageManager: PersistManager | undefined;
   /** The open confirmation question, if any. */
   private pending: { onYes: () => void; onNo: () => void; returnFocus: HTMLElement | null } | null = null;
 
@@ -80,6 +84,7 @@ export class App {
   ) {
     this.storage = options.storage;
     this.clock = options.now;
+    this.storageManager = options.storageManager;
     const year = options.year ?? new Date().getFullYear();
     let raw: string | null = null;
     let legacy: string | null = null;
@@ -253,6 +258,16 @@ export class App {
       this.save();
       this.updateSummary();
     });
+  }
+
+  /**
+   * Asks the browser to keep the saved years (SOA-38). If it refuses, a hint in the backup section
+   * suggests exporting a backup; without the Storage API nothing changes.
+   */
+  async keepData(): Promise<Persistence> {
+    const result = await requestPersistence(this.storageManager);
+    this.el("#persist-hint").hidden = result !== "refused";
+    return result;
   }
 
   /** Shows the outcome of an export or import next to the backup buttons. */

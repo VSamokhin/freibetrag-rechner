@@ -7,6 +7,15 @@ and versions follow `major.minor.build`, where the build part is derived from th
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-10
+
+### Added
+
+- Persistent storage (SOA-38): on start the app asks the browser to keep its data
+  (`navigator.storage.persist()`), so saved years are not cleared when the device runs low on space. It asks only
+  while the storage is not persistent yet. If the browser refuses, the Backup section shows a short hint to
+  export a backup now and then; browsers without the Storage API work as before.
+
 ## [0.4.0] - 2026-11-10
 
 ### Added

@@ -63,6 +63,7 @@ export interface StaticTexts {
   backupText: string;
   exportBackup: string;
   importBackup: string;
+  persistHint: string;
 }
 
 export type StaticKey = keyof StaticTexts;
@@ -131,6 +132,8 @@ const en: Messages = {
     backupText: "Save every year to a file, for example in your cloud storage, or restore them from one.",
     exportBackup: "Export to file",
     importBackup: "Import from file",
+    persistHint:
+      "This browser may delete saved data when the device runs low on space. Export a backup now and then.",
   },
   saved: "saved",
   notSaved: "no save yet",
@@ -196,6 +199,8 @@ const de: Messages = {
       "Alle Jahre in einer Datei sichern, etwa in deinem Cloud-Speicher, oder aus einer Datei wiederherstellen.",
     exportBackup: "In Datei exportieren",
     importBackup: "Aus Datei importieren",
+    persistHint:
+      "Dieser Browser kann gespeicherte Daten löschen, wenn der Speicher knapp wird. Exportiere ab und zu eine Sicherung.",
   },
   saved: "gespeichert",
   notSaved: "noch nicht gespeichert",
