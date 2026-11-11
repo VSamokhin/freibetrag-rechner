@@ -23,7 +23,7 @@ you send each of them a **Freistellungsauftrag**.
 - **One save per year:** start a new year as a copy of the most recent earlier year, or start with an empty list.
 - **Backup:** export every year to a JSON file (for example into your cloud storage) and import it again, on the
   same or another device. Importing replaces the years saved on the device, after a confirmation.
-- **English and German:** follows the browser language; switch any time with EN/DE in the header.
+- **English, German and Ukrainian:** follows the browser language; switch any time with EN/DE/UA in the header.
 - **Private and offline:** no account, no server and no tracking. Data stays in your browser's local storage,
   and the app can be installed on Android as a Progressive Web App (PWA).
 
@@ -110,7 +110,7 @@ The page also ships a strict Content Security Policy: scripts only from its own 
 ```
 src/model.ts     domain logic: amounts, limits, years, persistence format (pure, fully tested)
 src/app.ts       UI: rendering and interaction
-src/i18n.ts      UI texts in English and German, language detection
+src/i18n.ts      UI texts in English, German and Ukrainian, language detection
 src/main.ts      entry point, service worker registration
 src/version.ts   app version, injected at build time (see Versioning)
 public/          index.html, manifest, service worker, icons

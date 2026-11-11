@@ -7,6 +7,21 @@ and versions follow `major.minor.build`, where the build part is derived from th
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-11
+
+### Added
+
+- Ukrainian (preview): a third UI language. The header switch now reads **EN | DE | UA** (the button carries
+  `lang="uk"`); a browser set to Ukrainian starts in Ukrainian. Ukrainian plurals ("1 рік", "2 роки",
+  "5 років") are handled. German tax terms (Freistellungsauftrag, Sparerpauschbetrag) stay German, as on the forms.
+
+### Changed
+
+- On phones narrower than 360 px the title is slightly smaller and the language buttons tighter, so the title
+  stays on one line next to three languages.
+- The "max" label in a row is never squeezed narrower than its amount, so a longer fill button label cannot
+  cover it.
+
 ## [0.5.0] - 2026-11-10
 
 ### Added

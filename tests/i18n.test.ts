@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LANGS, type Messages, detectLang, isLang, isStaticKey, messagesFor } from "../src/i18n";
+import { LANGS, type Messages, detectLang, isLang, isStaticKey, messagesFor, yearsUk } from "../src/i18n";
 
 describe("detectLang", () => {
   it.each([
@@ -8,6 +8,8 @@ describe("detectLang", () => {
     [["DE"], "de"],
     [["fr-FR", "en-GB", "de"], "en"],
     [["fr", "ru"], "en"],
+    [["uk-UA", "de"], "uk"],
+    [["ru-RU", "UK"], "uk"],
     [[], "en"],
     [[""], "en"],
   ] as const)("%j → %s", (languages, expected) => {
@@ -72,5 +74,29 @@ describe("messages", () => {
     );
     expect(de.imported(3)).toBe("3 Jahre aus der Sicherung wiederhergestellt.");
     expect(sample(messagesFor("en"))).not.toEqual(sample(de));
+  });
+
+  it("speaks Ukrainian, with Ukrainian plurals", () => {
+    const uk = messagesFor("uk");
+    expect(uk.usedOf("300 €", "1.000 €")).toBe("Розподілено 300 € з 1.000 €");
+    expect(uk.confirmRemove("ING", "300 €")).toBe("Видалити «ING» і звільнити 300 €?");
+    expect(uk.imported(2)).toBe("Відновлено з резервної копії: 2 роки.");
+    expect(uk.resultsTitle(2026)).toBe("Freistellungsaufträge 2026");
+  });
+
+  it.each([
+    [1, "1 рік"],
+    [2, "2 роки"],
+    [4, "4 роки"],
+    [5, "5 років"],
+    [11, "11 років"],
+    [12, "12 років"],
+    [14, "14 років"],
+    [21, "21 рік"],
+    [22, "22 роки"],
+    [25, "25 років"],
+    [111, "111 років"],
+  ] as const)("yearsUk(%i) → %s", (n, expected) => {
+    expect(yearsUk(n)).toBe(expected);
   });
 });

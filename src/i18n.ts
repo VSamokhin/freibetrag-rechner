@@ -1,17 +1,17 @@
 /**
- * Translations (English and German) and language selection.
+ * Translations (English, German and Ukrainian) and language selection.
  * Pure: nothing in here touches the DOM, so it is fully unit-testable.
  * Amounts are always formatted the German way (1.000 €), whatever the language, because the
  * Freistellungsaufträge they end up on are German forms.
  */
 
-export type Lang = "en" | "de";
+export type Lang = "en" | "de" | "uk";
 
-export const LANGS: readonly Lang[] = ["en", "de"];
+export const LANGS: readonly Lang[] = ["en", "de", "uk"];
 export const LANG_KEY = "freibetrag-rechner:lang";
 
 export function isLang(value: unknown): value is Lang {
-  return value === "en" || value === "de";
+  return value === "en" || value === "de" || value === "uk";
 }
 
 /**
@@ -94,6 +94,15 @@ export interface Messages {
 
 const yearsEn = (n: number): string => (n === 1 ? "1 year" : `${String(n)} years`);
 const yearsDe = (n: number): string => (n === 1 ? "1 Jahr" : `${String(n)} Jahre`);
+
+/** Ukrainian plural: 1, 21 рік; 2–4, 22–24 роки; 0, 5–20, 25 років. */
+export function yearsUk(n: number): string {
+  const tens = n % 100;
+  const ones = n % 10;
+  const word =
+    ones === 1 && tens !== 11 ? "рік" : ones >= 2 && ones <= 4 && (tens < 12 || tens > 14) ? "роки" : "років";
+  return `${String(n)} ${word}`;
+}
 
 const en: Messages = {
   text: {
@@ -230,7 +239,72 @@ const de: Messages = {
     `Dein Browser sollte jetzt ${file} speichern, meist unter Downloads. Fehlt die Datei dort, hat der Browser oder die Seite um die App den Download blockiert.`,
 };
 
-const MESSAGES: Readonly<Record<Lang, Messages>> = { en, de };
+const uk: Messages = {
+  text: {
+    languageLabel: "Мова",
+    yearLabel: "Рік",
+    prevYear: "Попередній рік",
+    nextYear: "Наступний рік",
+    startEmpty: "Почати з нуля",
+    single: "Одна особа",
+    singleSub: "1.000 €",
+    joint: "Спільно",
+    jointSub: "2.000 € на двох",
+    stillAvailable: "Ще доступно",
+    addPlaceholder: "Банк або брокер",
+    addLabel: "Назва нової установи",
+    add: "Додати",
+    total: "Разом",
+    empty: "Додай банки та брокерів, яким хочеш надати Freistellungsauftrag.",
+    savedLocally: "Збережено лише на цьому пристрої",
+    resetAmounts: "Скинути суми",
+    deleteYear: "Видалити цей рік",
+    institutionName: "Назва установи",
+    removeInstitution: "Видалити установу",
+    remove: "Видалити",
+    amount: "Сума",
+    minusOne: "Мінус 1 €",
+    amountInEuros: "Сума в євро",
+    plusOne: "Плюс 1 €",
+    fillRest: "+ усе",
+    fillRestTitle: "Віддати весь залишок цій установі",
+    holdersTitle: "Власники рахунків",
+    holderLabel: "Власник рахунку",
+    cancel: "Скасувати",
+    ok: "OK",
+    backupTitle: "Резервна копія",
+    backupText: "Збережи всі роки у файл, наприклад у хмарному сховищі, або віднови їх із файлу.",
+    exportBackup: "Експортувати у файл",
+    importBackup: "Імпортувати з файлу",
+    persistHint:
+      "Цей браузер може видалити збережені дані, коли на пристрої мало місця. Час від часу експортуй резервну копію.",
+  },
+  saved: "збережено",
+  notSaved: "ще не збережено",
+  noSave: (year) => `За ${String(year)} рік ще нічого не збережено.`,
+  noSaveCopy: (year, prev) =>
+    `За ${String(year)} рік ще нічого не збережено. Почати з розподілу за ${String(prev)} рік чи з порожнього списку?`,
+  copyYear: (prev) => `Скопіювати ${String(prev)}`,
+  confirmDeleteYear: (year) => `Видалити збережені дані за ${String(year)} рік? Це не можна скасувати.`,
+  confirmScale: (used, total) => `Твої суми (${used}) перевищують ${total}. Пропорційно зменшити?`,
+  confirmRemove: (name, amount) => `Видалити «${name}» і звільнити ${amount}?`,
+  confirmReset: "Встановити всі суми на 0 €?",
+  usedOf: (used, total) => `Розподілено ${used} з ${total}`,
+  max: (amount) => `макс. ${amount}`,
+  resultsTitle: (year) => `Freistellungsaufträge ${String(year)}`,
+  holderName: (n) => `Ім’я власника рахунку ${String(n)}`,
+  confirmImport: (years) =>
+    `Замінити всі роки, збережені на цьому пристрої, даними з резервної копії (${yearsUk(years)})? Це не можна скасувати.`,
+  imported: (years) => `Відновлено з резервної копії: ${yearsUk(years)}.`,
+  importInvalid: "Цей файл не є резервною копією Freibetrag-Rechner або пошкоджений. Нічого не змінено.",
+  importNewer:
+    "Цю резервну копію створила новіша версія застосунку. Онови застосунок і імпортуй її знову. Нічого не змінено.",
+  importTooLarge: "Цей файл завеликий для резервної копії Freibetrag-Rechner. Нічого не змінено.",
+  exported: (file) =>
+    `Браузер має зберегти ${file}, зазвичай у теці «Завантаження». Якщо файлу там немає, браузер або сторінка навколо застосунку заблокували завантаження.`,
+};
+
+const MESSAGES: Readonly<Record<Lang, Messages>> = { en, de, uk };
 
 export const messagesFor = (lang: Lang): Messages => MESSAGES[lang];
 
