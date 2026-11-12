@@ -11,7 +11,7 @@ and versions follow `major.minor.build`, where the build part is derived from th
 
 ### Added
 
-- Ukrainian (preview): a third UI language. The header switch now reads **EN | DE | UA** (the button carries
+- Ukrainian (SOA-40): a third UI language. The header switch now reads **EN | DE | UA** (the button carries
   `lang="uk"`); a browser set to Ukrainian starts in Ukrainian. Ukrainian plurals ("1 рік", "2 роки",
   "5 років") are handled. German tax terms (Freistellungsauftrag, Sparerpauschbetrag) stay German, as on the forms.
 
