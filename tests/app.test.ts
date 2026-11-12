@@ -479,6 +479,25 @@ describe("language", () => {
     expect($("#start-empty").textContent).toBe("Start empty");
   });
 
+  it("offers Ukrainian as a third language and follows a Ukrainian browser", () => {
+    expect(document.querySelectorAll("[data-lang]")).toHaveLength(3);
+    addBank("ING");
+    typeAmount(0, "300");
+    $('[data-lang="uk"]').click();
+    expect(storage.getItem(LANG_KEY)).toBe("uk");
+    expect(document.documentElement.lang).toBe("uk");
+    expect($('[data-lang="uk"]').getAttribute("aria-pressed")).toBe("true");
+    expect($('[data-lang="de"]').getAttribute("aria-pressed")).toBe("false");
+    expect($("#add-form button").textContent).toBe("Додати");
+    expect(plain($("#used").textContent)).toBe("Розподілено 300 € з 1.000 €");
+    expect($(".inst .fill").textContent).toBe("+ усе");
+
+    storage = new MemoryStorage();
+    mountWith(["uk-UA", "de"]);
+    expect(app.language).toBe("uk");
+    expect($("#summary .label").textContent).toBe("Ще доступно");
+  });
+
   it("asks for confirmation in the chosen language", () => {
     $('[data-lang="de"]').click();
     addBank("ING");

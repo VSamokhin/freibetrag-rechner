@@ -107,6 +107,16 @@
         font-weight: 600;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
       }
+      /* Three languages: on the narrowest phones a slightly smaller title and tighter buttons
+         keep the title on one line next to the switch. */
+      @media (max-width: 359px) {
+        h1 {
+          font-size: 1.1rem;
+        }
+        .lang button {
+          padding: 6px 7px;
+        }
+      }
       .years {
         display: flex;
         align-items: center;
@@ -473,7 +483,8 @@
         font-size: 0.8rem;
         line-height: 1.2;
         flex: 1;
-        min-width: 0;
+        /* Never narrower than its longest word ("2.000 €"), so a longer fill label cannot cover it. */
+        min-width: min-content;
       }
       .fill {
         padding: 6px 10px;
@@ -591,6 +602,7 @@
         <div class="lang" role="group" aria-label="Language" data-i18n-label="languageLabel">
           <button type="button" data-lang="en" lang="en" aria-pressed="false">EN</button>
           <button type="button" data-lang="de" lang="de" aria-pressed="false">DE</button>
+          <button type="button" data-lang="uk" lang="uk" aria-pressed="false" title="Українська">UA</button>
         </div>
       </header>
 
