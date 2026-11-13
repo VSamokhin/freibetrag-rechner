@@ -8,6 +8,9 @@ The Husky pre-commit hook runs `npm run verify` (Prettier, ESLint, tsc, Vitest w
 secretlint, npm audit, build). CI runs the same command on pull requests to `main` and pushes to `main`.
 Never skip or weaken a gate to get green; fix the cause.
 
+When adding a GitHub Action to a workflow, look up its latest release on GitHub first and use that version; keep the existing actions on their
+latest releases too (Dependabot proposes the updates weekly).
+
 ## Version
 
 - The version is `major.minor.build`, derived from the git history by `scripts/version.mjs`:

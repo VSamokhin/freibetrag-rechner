@@ -41,12 +41,12 @@ jobs:
         run: |
           tag=${RELEASE_TAG:-$(gh release view --repo "$GITHUB_REPOSITORY" --json tagName --jq .tagName)}
           echo "tag=${tag:?no published release}" >> "$GITHUB_OUTPUT"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: refs/tags/${{ steps.tag.outputs.tag }}
           # The version is derived from the git history (scripts/version.mjs).
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -66,7 +66,7 @@ jobs:
         run: |
           (cd dist && zip -qr "../freibetrag-rechner-$TAG.zip" .)
           gh release upload "$TAG" "freibetrag-rechner-$TAG.zip" --clobber --repo "$GITHUB_REPOSITORY"
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: dist/
 
@@ -83,4 +83,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
