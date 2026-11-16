@@ -27,7 +27,15 @@ you send each of them a **Freistellungsauftrag**.
 - **Private and offline:** no account, no server and no tracking. Data stays in your browser's local storage,
   and the app can be installed on Android as a Progressive Web App (PWA).
 
-> This tool is a calculator, not tax advice. Please check the current limits for your situation.
+## Disclaimer
+
+Freibetrag-Rechner is a planning aid, not tax or financial advice. There is no guarantee that its results are correct
+or complete. Check the current Sparerpauschbetrag and your Freistellungsaufträge with your bank or a tax advisor.
+
+## Privacy
+
+All data stays on your device: nothing is sent to any server, and there are no analytics and no cookies. Backup
+files you export contain the names and amounts you entered, unencrypted.
 
 ## Using it
 
@@ -164,4 +172,4 @@ One-time repository settings for the deployment:
 
 ## License
 
-[MIT](LICENSE): free to use, copy, modify and distribute.
+© 2026 Viktor Samokhin. Released under the [MIT License](LICENSE): free to use, copy, modify and distribute.

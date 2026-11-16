@@ -358,7 +358,7 @@ describe("backup (SOA-36)", () => {
     $("#export").click();
     expect(download.name()).toBe("freibetrag-rechner-2026-11-10.json");
     expect(status()).toContain("freibetrag-rechner-2026-11-10.json");
-    expect($$("a")).toHaveLength(0);
+    expect($$("a[download]")).toHaveLength(0);
     const text = await download.blob().text();
     expect(JSON.parse(text)).toMatchObject({ app: BACKUP_APP, format: 1, years: { 2026: {}, 2027: {} } });
 
@@ -496,6 +496,22 @@ describe("language", () => {
     mountWith(["uk-UA", "de"]);
     expect(app.language).toBe("uk");
     expect($("#summary .label").textContent).toBe("Ще доступно");
+  });
+
+  it("shows the disclaimer, privacy note and copyright in every language", () => {
+    const legal = (): string => plain($(".legal").textContent).replace(/\s+/g, " ");
+    expect(legal()).toMatch(/not tax or financial advice/);
+    expect(legal()).toMatch(/nothing is sent to a server/);
+    expect($("#copyright").textContent).toBe("© 2026 Viktor Samokhin");
+    expect($(".legal a").getAttribute("href")).toMatch(/\/LICENSE$/);
+    $('[data-lang="de"]').click();
+    expect(legal()).toMatch(/keine Steuer- oder Finanzberatung/);
+    expect(legal()).toMatch(/Nichts wird an einen Server gesendet/);
+    expect($(".legal a").textContent).toBe("MIT-Lizenz");
+    $('[data-lang="uk"]').click();
+    expect(legal()).toMatch(/не податкова чи фінансова консультація/);
+    expect($(".legal a").textContent).toBe("Ліцензія MIT");
+    expect($("#copyright").textContent).toBe("© 2026 Viktor Samokhin");
   });
 
   it("asks for confirmation in the chosen language", () => {

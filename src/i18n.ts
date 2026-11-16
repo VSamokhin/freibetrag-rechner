@@ -64,6 +64,9 @@ export interface StaticTexts {
   exportBackup: string;
   importBackup: string;
   persistHint: string;
+  disclaimer: string;
+  privacy: string;
+  license: string;
 }
 
 export type StaticKey = keyof StaticTexts;
@@ -143,6 +146,11 @@ const en: Messages = {
     importBackup: "Import from file",
     persistHint:
       "This browser may delete saved data when the device runs low on space. Export a backup now and then.",
+    disclaimer:
+      "A planning aid, not tax or financial advice, and without any guarantee that the results are correct. Check the current Sparerpauschbetrag and your Freistellungsaufträge with your bank or a tax advisor.",
+    privacy:
+      "Your data stays on this device: nothing is sent to a server, no analytics, no cookies. Backup files contain the names and amounts you entered.",
+    license: "MIT License",
   },
   saved: "saved",
   notSaved: "no save yet",
@@ -210,6 +218,11 @@ const de: Messages = {
     importBackup: "Aus Datei importieren",
     persistHint:
       "Dieser Browser kann gespeicherte Daten löschen, wenn der Speicher knapp wird. Exportiere ab und zu eine Sicherung.",
+    disclaimer:
+      "Eine Planungshilfe, keine Steuer- oder Finanzberatung, und ohne Gewähr für die Richtigkeit der Ergebnisse. Prüfe den aktuellen Sparerpauschbetrag und deine Freistellungsaufträge mit deiner Bank oder einer Steuerberatung.",
+    privacy:
+      "Deine Daten bleiben auf diesem Gerät: Nichts wird an einen Server gesendet, keine Analyse, keine Cookies. Sicherungsdateien enthalten die eingegebenen Namen und Beträge.",
+    license: "MIT-Lizenz",
   },
   saved: "gespeichert",
   notSaved: "noch nicht gespeichert",
@@ -278,6 +291,11 @@ const uk: Messages = {
     importBackup: "Імпортувати з файлу",
     persistHint:
       "Цей браузер може видалити збережені дані, коли на пристрої мало місця. Час від часу експортуй резервну копію.",
+    disclaimer:
+      "Це інструмент для планування, а не податкова чи фінансова консультація, і без гарантії правильності результатів. Перевір актуальний Sparerpauschbetrag і свої Freistellungsaufträge у своєму банку або в податкового консультанта.",
+    privacy:
+      "Твої дані залишаються на цьому пристрої: нічого не надсилається на сервер, без аналітики й cookie. Файли резервної копії містять введені назви та суми.",
+    license: "Ліцензія MIT",
   },
   saved: "збережено",
   notSaved: "ще не збережено",
