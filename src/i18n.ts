@@ -43,7 +43,6 @@ export interface StaticTexts {
   add: string;
   total: string;
   empty: string;
-  savedLocally: string;
   resetAmounts: string;
   deleteYear: string;
   institutionName: string;
@@ -124,7 +123,6 @@ const en: Messages = {
     add: "Add",
     total: "Total",
     empty: "Add the banks and brokers you want to send a Freistellungsauftrag to.",
-    savedLocally: "Saved on this device only",
     resetAmounts: "Reset amounts",
     deleteYear: "Delete this year",
     institutionName: "Institution name",
@@ -195,7 +193,6 @@ const de: Messages = {
     add: "Hinzufügen",
     total: "Summe",
     empty: "Füge die Banken und Broker hinzu, denen du einen Freistellungsauftrag erteilen möchtest.",
-    savedLocally: "Nur auf diesem Gerät gespeichert",
     resetAmounts: "Beträge zurücksetzen",
     deleteYear: "Dieses Jahr löschen",
     institutionName: "Name des Instituts",
@@ -269,7 +266,6 @@ const uk: Messages = {
     add: "Додати",
     total: "Разом",
     empty: "Додай банки та брокерів, яким хочеш надати Freistellungsauftrag.",
-    savedLocally: "Збережено лише на цьому пристрої",
     resetAmounts: "Скинути суми",
     deleteYear: "Видалити цей рік",
     institutionName: "Назва установи",
