@@ -7,6 +7,18 @@ and versions follow `major.minor.build`, where the build part is derived from th
 
 ## [Unreleased]
 
+### Added
+
+- A small legal footer (SOA-68), in English, German and Ukrainian: a disclaimer (planning aid, not tax or
+  financial advice, no guarantee; check with your bank or a tax advisor), a privacy note (data stays on the device,
+  no server, no analytics, no cookies; backups hold the entered names and amounts) and
+  "© 2026 Viktor Samokhin · v<version> · MIT License". The README has the same disclaimer, privacy and copyright notes.
+
+### Changed
+
+- The version moved from the "Saved on this device only" line into the legal footer. That line is gone, as the
+  privacy note now says the same.
+
 ## [0.6.0] - 2026-11-11
 
 ### Added

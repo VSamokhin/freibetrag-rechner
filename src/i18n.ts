@@ -43,7 +43,6 @@ export interface StaticTexts {
   add: string;
   total: string;
   empty: string;
-  savedLocally: string;
   resetAmounts: string;
   deleteYear: string;
   institutionName: string;
@@ -64,6 +63,9 @@ export interface StaticTexts {
   exportBackup: string;
   importBackup: string;
   persistHint: string;
+  disclaimer: string;
+  privacy: string;
+  license: string;
 }
 
 export type StaticKey = keyof StaticTexts;
@@ -121,7 +123,6 @@ const en: Messages = {
     add: "Add",
     total: "Total",
     empty: "Add the banks and brokers you want to send a Freistellungsauftrag to.",
-    savedLocally: "Saved on this device only",
     resetAmounts: "Reset amounts",
     deleteYear: "Delete this year",
     institutionName: "Institution name",
@@ -143,6 +144,11 @@ const en: Messages = {
     importBackup: "Import from file",
     persistHint:
       "This browser may delete saved data when the device runs low on space. Export a backup now and then.",
+    disclaimer:
+      "A planning aid, not tax or financial advice, and without any guarantee that the results are correct. Check the current Sparerpauschbetrag and your Freistellungsaufträge with your bank or a tax advisor.",
+    privacy:
+      "Your data stays on this device: nothing is sent to a server, no analytics, no cookies. Backup files contain the names and amounts you entered.",
+    license: "MIT License",
   },
   saved: "saved",
   notSaved: "no save yet",
@@ -187,7 +193,6 @@ const de: Messages = {
     add: "Hinzufügen",
     total: "Summe",
     empty: "Füge die Banken und Broker hinzu, denen du einen Freistellungsauftrag erteilen möchtest.",
-    savedLocally: "Nur auf diesem Gerät gespeichert",
     resetAmounts: "Beträge zurücksetzen",
     deleteYear: "Dieses Jahr löschen",
     institutionName: "Name des Instituts",
@@ -210,6 +215,11 @@ const de: Messages = {
     importBackup: "Aus Datei importieren",
     persistHint:
       "Dieser Browser kann gespeicherte Daten löschen, wenn der Speicher knapp wird. Exportiere ab und zu eine Sicherung.",
+    disclaimer:
+      "Eine Planungshilfe, keine Steuer- oder Finanzberatung, und ohne Gewähr für die Richtigkeit der Ergebnisse. Prüfe den aktuellen Sparerpauschbetrag und deine Freistellungsaufträge mit deiner Bank oder einer Steuerberatung.",
+    privacy:
+      "Deine Daten bleiben auf diesem Gerät: Nichts wird an einen Server gesendet, keine Analyse, keine Cookies. Sicherungsdateien enthalten die eingegebenen Namen und Beträge.",
+    license: "MIT-Lizenz",
   },
   saved: "gespeichert",
   notSaved: "noch nicht gespeichert",
@@ -256,7 +266,6 @@ const uk: Messages = {
     add: "Додати",
     total: "Разом",
     empty: "Додай банки та брокерів, яким хочеш надати Freistellungsauftrag.",
-    savedLocally: "Збережено лише на цьому пристрої",
     resetAmounts: "Скинути суми",
     deleteYear: "Видалити цей рік",
     institutionName: "Назва установи",
@@ -278,6 +287,11 @@ const uk: Messages = {
     importBackup: "Імпортувати з файлу",
     persistHint:
       "Цей браузер може видалити збережені дані, коли на пристрої мало місця. Час від часу експортуй резервну копію.",
+    disclaimer:
+      "Це інструмент для планування, а не податкова чи фінансова консультація, і без гарантії правильності результатів. Перевір актуальний Sparerpauschbetrag і свої Freistellungsaufträge у своєму банку або в податкового консультанта.",
+    privacy:
+      "Твої дані залишаються на цьому пристрої: нічого не надсилається на сервер, без аналітики й cookie. Файли резервної копії містять введені назви та суми.",
+    license: "Ліцензія MIT",
   },
   saved: "збережено",
   notSaved: "ще не збережено",
